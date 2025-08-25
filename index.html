@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Aurora – a clean, responsive starter page." />
+    <title>Aurora</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="/assets/css/styles.css" />
+
+    <!-- Leaflet (map) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+    <script>
+      // Fallback: if CDN blocked, load local Chart.js from node_modules
+      (function(){
+        function ensureChartLoaded(){
+          if (window.Chart) return;
+          var s = document.createElement('script');
+          s.src = '/node_modules/chart.js/dist/chart.umd.min.js';
+          s.async = false;
+          document.head.appendChild(s);
+        }
+        if (!window.Chart) {
+          if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', ensureChartLoaded);
+          } else {
+            ensureChartLoaded();
+          }
+        }
+      })();
+    </script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+    <script defer src="/assets/js/main.js"></script>
+  </head>
+  <body>
+    <!-- Header -->
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="brand" href="#home" aria-label="Aurora-Help.com home">Aurora-Help.com</a>
+
+        <button class="nav-toggle" aria-controls="primary-nav" aria-expanded="false" aria-label="Toggle navigation">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          </svg>
+        </button>
+
+        <nav id="primary-nav" class="nav" aria-label="Primary">
+          <ul>
+            <li><a href="#home">Home</a></li>
+            <li><a href="#dashboard">Dashboard</a></li>
+            <li><a href="#features">Features</a></li>
+            <li><a href="#contact">Contact</a></li>
+          </ul>
+        </nav>
+      </div>
+    </header>
+
+    <!-- Hero -->
+    <main id="home" class="hero">
+      <div class="container hero-inner">
+        <div class="hero-copy">
+          <h1>Space Weather Live Data.</h1>
+          <p>Live data that is collected from NOAA satellites.</p>
+          <div class="hero-actions">
+            <a class="btn" href="#features">Explore features</a>
+            <a class="btn btn-outline" href="#contact">Contact us</a>
+          </div>
+        </div>
+        <div class="hero-media" aria-hidden="true">
+          <!-- Removed decorative stats; kept container for layout -->
+        </div>
+      </div>
+    </main>
+
+    <!-- Dashboard -->
+    <section id="dashboard" class="section dashboard">
+      <div class="container">
+        <header class="section-header">
+          <h2>Space Weather Dashboard</h2>
+          <p>Live metrics and charts.</p>
+          <div class="source-note">Source: <span id="source-sat">--</span></div>
+          <div class="updated-note">Updated at: <span id="updated-at">--:--</span></div>
+        </header>
+
+        <div class="metrics-grid" role="list">
+          <div class="metric" role="listitem">
+            <div class="label">Bz (nT)</div>
+            <div class="value" id="metric-bz">--</div>
+          </div>
+          <div class="metric" role="listitem">
+            <div class="label">Bt (nT)</div>
+            <div class="value" id="metric-bt">--</div>
+          </div>
+          <div class="metric" role="listitem">
+            <div class="label">Speed (km/s)</div>
+            <div class="value" id="metric-speed">--</div>
+          </div>
+          <div class="metric" role="listitem">
+            <div class="label">Density (p/cc)</div>
+            <div class="value" id="metric-density">--</div>
+          </div>
+          <div class="metric" role="listitem">
+            <div class="label">Boyle Index</div>
+            <div class="value" id="metric-boyle">--</div>
+          </div>
+          <div class="metric" role="listitem">
+            <div class="label">V×Bz</div>
+            <div class="value" id="metric-vxbz">--</div>
+          </div>
+        </div>
+
+        <div class="charts-grid">
+          <article class="card chart-card">
+            <h3>Solar Wind</h3>
+            <div class="chart-box">
+              <canvas id="chart-wind" aria-label="Solar wind speed and density" role="img"></canvas>
+            </div>
+          </article>
+          <article class="card chart-card">
+            <h3>Kp Index</h3>
+            <div class="chart-box">
+              <canvas id="chart-kp" aria-label="Kp index last 24 hours" role="img"></canvas>
+            </div>
+            <div class="rx">
+              <span class="label">Radio Blackout Risk:</span>
+              <span id="rx-badge" class="rx-badge low">low</span>
+            </div>
+          </article>
+        </div>
+
+        <!-- Local Magnetometer (FMI) Bx line chart -->
+        <article class="card chart-card" aria-live="polite">
+          <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;gap:.75rem;flex-wrap:wrap">
+            <h3 style="margin:0">Local Magnetometer — Bx (nT)</h3>
+            <div class="controls" style="display:flex;align-items:center;gap:.5rem">
+              <label for="bx-station" class="sr-only">Station</label>
+              <span class="label">Station:</span>
+              <select id="bx-station" aria-label="FMI station for Bx">
+                <option value="KEV">KEV</option>
+              </select>
+              <label for="bx-range" class="sr-only">Range</label>
+              <span class="label">Range:</span>
+              <select id="bx-range" aria-label="Time range">
+                <option value="60" selected>1h</option>
+                <option value="180">3h</option>
+              </select>
+            </div>
+          </div>
+          <div class="chart-box" aria-hidden="false">
+            <canvas id="chart-bx" aria-label="Bx last hour line chart" role="img"></canvas>
+          </div>
+          <div id="bx-caption" class="mini-caption">Updated at --:-- · FMI IMAGE</div>
+        </article>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section id="features" class="section features">
+      <div class="container">
+        <header class="section-header">
+          <h2>Live metrics and charts</h2>
+          <p>Adjust the time zone at the bottom of the page.</p>
+        </header>
+        <div class="grid">
+          <article class="card">
+            <div class="mini-chart-box" aria-hidden="false">
+              <canvas id="chart-bz-mini" aria-label="Mini Bz chart" role="img"></canvas>
+            </div>
+            <div id="mini-caption-bzbt" class="mini-caption">Bz · DSCOVR</div>
+          </article>
+          <article class="card vxbz-card" aria-live="polite">
+            <div class="mini-chart-box" aria-hidden="false">
+              <canvas id="chart-vxbz-mini" aria-label="Mini V×Bz chart" role="img"></canvas>
+            </div>
+            <div id="mini-caption-vxbz" class="mini-caption">V×Bz: -- mV/m at --:--</div>
+          </article>
+          <article class="card">
+            <div class="mini-chart-box" aria-hidden="false">
+              <canvas id="chart-density-mini" aria-label="Mini density chart" role="img"></canvas>
+            </div>
+            <div id="mini-caption-density" class="mini-caption">Density — p/cc</div>
+          </article>
+          <article class="card">
+            <div class="mini-chart-box" aria-hidden="false">
+              <canvas id="chart-boyle-mini" aria-label="Mini Boyle index chart" role="img"></canvas>
+            </div>
+            <div id="mini-caption-boyle" class="mini-caption">Boyle index</div>
+          </article>
+          <article class="card">
+            <h3>Dst index (nT)</h3>
+            <div class="mini-chart-box" aria-hidden="false">
+              <canvas id="chart-dst-mini" aria-label="Mini Dst chart" role="img"></canvas>
+            </div>
+            <div id="mini-caption-dst" class="mini-caption">Dst: -- nT at --:-- · Kyoto WDC</div>
+          </article>
+          <article class="card" aria-live="polite">
+            <h3>Solar Imagery</h3>
+            <div class="mini-chart-box" style="padding:0;overflow:hidden;border-radius:8px">
+              <img
+                src="https://soho.nascom.nasa.gov/data/sunspot/latest.jpg"
+                alt="Latest Sunspot Image"
+                loading="lazy"
+                referrerpolicy="no-referrer"
+                style="display:block;max-width:100%;height:auto"
+                onerror="this.onerror=null;this.src='/api/solarimage?src=soho_sunspot&t=' + Date.now();"
+              />
+            </div>
+            <div class="mini-caption">Source: SOHO/NASA — Note: SOHO imagery may be temporarily unavailable due to upstream issues.</div>
+          </article>
+          <article class="card" aria-live="polite">
+            <h3>FMI Radar (live)</h3>
+            <div id="radar-map" class="radar-map" aria-label="FMI radar reflectivity over Finland" role="img">
+              <div class="map-overlay">Loading radar…</div>
+            </div>
+            <div class="mini-caption">Radar data © Finnish Meteorological Institute (FMI) — via OpenWMS. Base map © OpenStreetMap contributors.</div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Contact / CTA -->
+    <section id="contact" class="section cta">
+      <div class="container cta-inner">
+        <div class="cta-copy">
+          <h2>Ready to get started?</h2>
+          <p>Use this scaffold as-is or tailor it to your brand in minutes.</p>
+        </div>
+        <a class="btn" href="#home">Back to top</a>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+      <div class="container footer-inner">
+        <p>© <span id="year"></span> Aurora. All rights reserved.</p>
+        <div class="tz-controls">
+          <label for="tz-select">Time zone:</label>
+          <select id="tz-select" aria-label="Time zone"></select>
+          <span id="tz-note" class="tz-note"></span>
+        </div>
+        <div class="credits" id="credits" style="margin-top:.75rem">
+          <strong>Data sources:</strong>
+          <a href="https://services.swpc.noaa.gov/" target="_blank" rel="noopener">NOAA/SWPC RTSW</a>
+          ·
+          <a href="https://space.fmi.fi/image/" target="_blank" rel="noopener">FMI IMAGE magnetometers</a>
+          ·
+          <a href="https://wdc.kugi.kyoto-u.ac.jp/dst_realtime/presentmonth/" target="_blank" rel="noopener">WDC Kyoto Dst</a>
+        </div>
+        <ul class="social">
+          <li><a href="#" aria-label="Twitter">Twitter</a></li>
+          <li><a href="#" aria-label="GitHub">GitHub</a></li>
+          <li><a href="#" aria-label="LinkedIn">LinkedIn</a></li>
+        </ul>
+      </div>
+    </footer>
+  </body>
+</html>

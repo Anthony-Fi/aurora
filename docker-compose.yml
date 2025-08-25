@@ -1,0 +1,30 @@
+version: "3.9"
+
+services:
+  aurora:
+    build: .
+    container_name: aurora
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      # - TIME_OFFSET_MIN=0  # optional: shift charted times by N minutes
+    expose:
+      - "3000"
+
+  caddy:
+    image: caddy:2
+    container_name: caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - aurora
+
+volumes:
+  caddy_data:
+  caddy_config:

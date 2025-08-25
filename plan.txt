@@ -1,0 +1,121 @@
+
+
+🚀 Project Goal
+Create a self-hosted, real-time space weather dashboard focused on Finland, using Docker. The site will:
+
+Pull raw data from NOAA, SWPC, FMI,
+Process and visualize metrics like Bz, Bt, solar wind speed/density, Boyle Index, VxBz
+
+Display Kp index, magnetometer readings, solar imagery, and RX aurora forecast
+
+Run on your own backend, with full control over layout and logic
+
+🧱 Architecture Overview
+Layer	Tech Stack	Purpose
+Frontend	HTML, CSS, JS, Chart.js	Display graphs, metrics, and forecasts
+Backend	Node.js + Express (or Python)	Fetch, process, and serve data
+Container	Docker	Portability and deployment
+Scheduler	Cron or Node scheduler	Periodic data updates
+🔌 Data Sources & What to Pull
+Source	Data to Fetch	Notes
+NOAA SWPC	Bz, Bt, Speed, Density, Kp Index	JSON feeds available
+RWC Finland	RX forecast, Kevo magnetometer	Scrape or request API access
+Jemma.mobi	Boyle Index, VxBz, RX, solar wind	Scrape dashboard or parse embedded data
+NASA/NOAA	Solar imagery (visible light, X-ray)	Use latest image URLs or FTP feeds
+🧠 Backend Logic
+Fetch & Cache: Pull data every 5–10 minutes, store in memory or lightweight DB
+
+Process Metrics:
+
+Boyle Index = speed * |bz| / 1000
+
+VxBz = speed * bz
+
+Serve API: Create endpoints like /api/solarwind, /api/kp, /api/rx
+
+
+services.swpc.noaa.gov/json/dscovr/dscovr_mag_1s.json
+services.swpc.noaa.gov/json/rtsw/rtsw_wind_1m.json
+services.swpc.noaa.gov/json/rtsw/rtsw_mag_1m.json
+services.swpc.noaa.gov/json/geospace/geospace_pred_est_kp_1_hour.json
+
+
+🎨 Frontend Layout
+🔝 Top Bar
+Satellite name (DSCOVR / ACE), Bz, Bt, Speed, Density, Boyle Index, VxBz
+
+
+
+📊 Main Panels
+Kp Index meter (Chart.js)
+
+Solar wind speed/density graph
+
+RX forecast meter (color-coded)
+
+
+Magnetometer chart (Kevo)
+
+🌞 Solar Imagery
+Latest visible light image
+
+Optional: X-ray or coronal hole overlays
+
+🐳 Docker Setup
+Dockerfile with Node.js or Python
+
+Serve static frontend + API
+
+Optional: Docker Compose for scheduling
+
+🛠️ Optional Enhancements
+Alert system: Notify when Kp ≥ 5 or RX = high
+
+Mobile-friendly layout
+
+Historical data viewer
+
+Finnish language toggle
+
+Disturbance Storm Time (Dst) index is a powerful tool for tracking geomagnetic storms—perfect for a space weather website. Let’s break it down and then explore how you can integrate it.
+
+What Is the Dst Index?
+The Dst index measures the strength of the Earth's ring current, which intensifies during geomagnetic storms. This current flows westward around Earth’s equator and weakens the planet’s magnetic field.
+
+Units: Measured in nanoTeslas (nT)
+
+Source: Derived from magnetometers at four low-latitude observatories
+
+Purpose: Quantifies the depression in Earth’s magnetic field during storms
+
+A negative Dst value means the magnetic field is weakened—typically due to solar wind or coronal mass ejections (CMEs)2.
+
+📊 Dst Index Value Interpretation
+Dst Value (nT)	Storm Classification	Impact
+0 to -30	Quiet to weak disturbance	Minimal geomagnetic activity
+-30 to -50	Minor storm	Slight auroral activity
+-50 to -100	Moderate storm	Visible auroras at higher latitudes
+-100 to -250	Intense storm	Possible satellite, GPS, and power grid issues
+Below -250	Severe storm	High risk to infrastructure and navigation
+Example: The March 1989 storm hit -589 nT, causing a major blackout in Quebec.
+
+The average depression is calculated hourly and reported as the Dst index.
+
+1. Live Data Source
+Use data from:
+https://wdc.kugi.kyoto-u.ac.jp/dstdir/
+
+2. Embed a Live Chart
+
+3. Auto-Refresh Feature
+Set up a script to refresh the data every hour:
+
+Green: Quiet
+Yellow: Moderate
+Red: Severe
+
+5. Mobile-Friendly Design
+Make sure your chart and alerts scale well on mobile devices.
+
+
+
