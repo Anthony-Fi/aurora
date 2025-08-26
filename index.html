@@ -3,8 +3,49 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="Aurora – a clean, responsive starter page." />
-    <title>Aurora</title>
+    <meta name="description" content="Aurora-Help — Live space weather for Finland: Bz, Bt, solar wind speed, density, Kp, Dst, and live FMI radar map." />
+    <title>Aurora-Help — Live Space Weather for Finland</title>
+
+    <!-- Canonical & Robots -->
+    <link rel="canonical" href="https://aurora-help.com/" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <meta name="theme-color" content="#0b1220" />
+    <!-- Search engine verification (fill values from Google/Bing) -->
+    <meta name="google-site-verification" content="" />
+    <meta name="msvalidate.01" content="" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Aurora-Help" />
+    <meta property="og:title" content="Aurora-Help — Live Space Weather for Finland" />
+    <meta property="og:description" content="Live space weather: Bz, Bt, solar wind, Kp, Dst, FMI radar." />
+    <meta property="og:url" content="https://aurora-help.com/" />
+    <!-- <meta property="og:image" content="https://aurora-help.com/assets/og.png" /> -->
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Aurora-Help — Live Space Weather for Finland" />
+    <meta name="twitter:description" content="Live space weather: Bz, Bt, solar wind, Kp, Dst, FMI radar." />
+    <!-- <meta name="twitter:image" content="https://aurora-help.com/assets/og.png" /> -->
+
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "Aurora-Help",
+        "url": "https://aurora-help.com/",
+        "description": "Live space weather for Finland: Bz, Bt, solar wind speed, density, Kp, Dst, and live FMI radar map.",
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": {
+            "@type": "EntryPoint",
+            "urlTemplate": "https://aurora-help.com/search?q={search_term_string}"
+          },
+          "query-input": "required name=search_term_string"
+        }
+      }
+    </script>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -58,6 +99,7 @@
             <li><a href="#home">Home</a></li>
             <li><a href="#dashboard">Dashboard</a></li>
             <li><a href="#features">Features</a></li>
+            <li><a href="#guide">Guide</a></li>
           </ul>
         </nav>
       </div>
@@ -225,7 +267,62 @@
       </div>
     </section>
 
-    
+    <!-- Guide: How to use this site -->
+    <section id="guide" class="section guide">
+      <div class="container">
+        <header class="section-header">
+          <h2>How to spot the Northern Lights</h2>
+          <p>Simple rules and how to use these tools.</p>
+        </header>
+        <div class="grid">
+          <article class="card">
+            <h3>1) First rule: Weather</h3>
+            <ul>
+              <li><strong>Darkness</strong>: Go after sunset and avoid light pollution.</li>
+              <li><strong>Clouds</strong>: If it's cloudy, you will not see auroras.</li>
+            </ul>
+            <p>Tip: The radar here shows rain/snow, not cloud cover. Use your preferred cloud forecast app/site.</p>
+          </article>
+
+          <article class="card">
+            <h3>2) Solar wind basics</h3>
+            <ul>
+              <li><strong>Bz</strong> (IMF): Best when negative (southward). Aim for <strong>&lt; -5 nT</strong> sustained.</li>
+              <li><strong>Speed</strong>: Higher is better. <strong>&gt; 500 km/s</strong> improves chances.</li>
+              <li><strong>Density</strong>: Spikes can help the aurora brighten.</li>
+            </ul>
+            <p>Check the live metrics and the <strong>Solar Wind</strong> chart in the dashboard.</p>
+          </article>
+
+          <article class="card">
+            <h3>3) Kp and Dst</h3>
+            <ul>
+              <li><strong>Kp</strong>: Higher = wider visibility. Rough guide for Finland: Lapland ≥ 3, Central ≥ 4, South ≥ 5.</li>
+              <li><strong>Dst</strong>: More negative = stronger storm. Watch for <strong>≤ -50 nT</strong>.</li>
+            </ul>
+          </article>
+
+          <article class="card">
+            <h3>4) Local magnetic activity</h3>
+            <p>Use the <strong>Local Magnetometer — Bx</strong> mini chart. Fast swings often precede bright displays.</p>
+          </article>
+
+          <article class="card">
+            <h3>5) Precipitation radar</h3>
+            <p>The <strong>FMI Radar</strong> helps avoid rain/snow. No echoes nearby is better for viewing. Radar does not show cloud cover.</p>
+          </article>
+
+          <article class="card">
+            <h3>Tips</h3>
+            <ul>
+              <li>Use the <strong>Time zone</strong> selector in the footer to view local times.</li>
+              <li>If data looks stale, refresh; timestamps indicate the last update.</li>
+            </ul>
+          </article>
+        </div>
+      </div>
+    </section>
+
 
     <!-- Footer -->
     <footer class="site-footer">

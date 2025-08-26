@@ -1,0 +1,6 @@
+User-agent: *
+Disallow: /search
+Disallow: /api
+Allow: /
+
+Sitemap: https://aurora-help.com/sitemap.xml
