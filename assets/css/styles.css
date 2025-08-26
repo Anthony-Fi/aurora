@@ -140,6 +140,12 @@ img, svg { display: block; max-width: 100%; height: auto; }
 .section-header { text-align: center; margin-bottom: 28px; }
 .section-header p { color: var(--muted); margin: 8px auto 0; max-width: 65ch; }
 
+/* Section footer */
+.section-footer { margin-top: 18px; text-align: center; }
+.section-footer .to-top { color: var(--muted); text-decoration: none; font-size: 14px; }
+.section-footer .to-top:hover, .section-footer .to-top:focus-visible { color: var(--text); text-decoration: underline; }
+.section-footer .to-top:focus-visible { outline: 3px solid var(--ring); outline-offset: 2px; }
+
 /* Dashboard */
 .dashboard .metrics-grid {
   display: grid;
