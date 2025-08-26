@@ -165,6 +165,21 @@
             <div class="chart-box">
               <canvas id="chart-wind" aria-label="Solar wind speed and density" role="img"></canvas>
             </div>
+            <p id="wind-summary" class="sr-only" aria-live="polite">Solar wind summary will appear here.</p>
+            <button id="toggle-wind-table" class="btn btn-outline" type="button" aria-expanded="false" aria-controls="wind-table-wrap" style="margin-top:8px">Show data table</button>
+            <div id="wind-table-wrap" class="mini-table-box" hidden role="region" aria-labelledby="wind-table-caption">
+              <table id="wind-table" class="mini-table">
+                <caption id="wind-table-caption" class="sr-only">Solar wind data table: time, speed, and density</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Time</th>
+                    <th scope="col">Speed (km/s)</th>
+                    <th scope="col">Density (p/cc)</th>
+                  </tr>
+                </thead>
+                <tbody id="wind-table-body"></tbody>
+              </table>
+            </div>
           </article>
           <article class="card chart-card">
             <h3>Kp Index</h3>
@@ -174,6 +189,20 @@
             <div class="rx">
               <span class="label">Radio Blackout Risk:</span>
               <span id="rx-badge" class="rx-badge low">low</span>
+            </div>
+            <p id="kp-summary" class="sr-only" aria-live="polite">Kp index summary will appear here.</p>
+            <button id="toggle-kp-table" class="btn btn-outline" type="button" aria-expanded="false" aria-controls="kp-table-wrap" style="margin-top:8px">Show data table</button>
+            <div id="kp-table-wrap" class="mini-table-box" hidden role="region" aria-labelledby="kp-table-caption">
+              <table id="kp-table" class="mini-table">
+                <caption id="kp-table-caption" class="sr-only">Kp index data table: time and Kp value</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Time</th>
+                    <th scope="col">Kp</th>
+                  </tr>
+                </thead>
+                <tbody id="kp-table-body"></tbody>
+              </table>
             </div>
           </article>
         </div>
@@ -200,76 +229,25 @@
             <canvas id="chart-bx" aria-label="Bx last hour line chart" role="img"></canvas>
           </div>
           <div id="bx-caption" class="mini-caption">Updated at --:-- · FMI IMAGE</div>
+          <p id="bx-summary" class="sr-only" aria-live="polite">Bx summary will appear here.</p>
+          <button id="toggle-bx-table" class="btn btn-outline" type="button" aria-expanded="false" aria-controls="bx-table-wrap" style="margin-top:8px">Show data table</button>
+          <div id="bx-table-wrap" class="mini-table-box" hidden role="region" aria-labelledby="bx-table-caption">
+            <table id="bx-table" class="mini-table">
+              <caption id="bx-table-caption" class="sr-only">Local magnetometer Bx data table: time and Bx (nT)</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Time</th>
+                  <th scope="col">Bx (nT)</th>
+                </tr>
+              </thead>
+              <tbody id="bx-table-body"></tbody>
+            </table>
+          </div>
         </article>
       </div>
     </section>
 
-    <!-- Aurora 101: What causes auroras? -->
-    <section id="aurora-101" class="section learn">
-      <div class="container">
-        <header class="section-header">
-          <h2>What causes the Northern Lights?</h2>
-          <p>Two explanations: one in simple terms and one more scientific.</p>
-          <p>Learn what causes auroras (Northern Lights): how solar flares and coronal mass ejections (CMEs) launch solar wind toward Earth, how long it takes to arrive, why some storms miss or have the wrong magnetic direction, and how interacting or "cannibal" CMEs can intensify geomagnetic storms.</p>
-        </header>
-        <div class="grid">
-          <article class="card">
-            <h3 id="aurora-simple">In simple terms</h3>
-            <p>The Sun sometimes blasts out gusts and clouds of charged gas. When those reach Earth and connect with our planet's magnetic field, energy flows into the upper atmosphere and makes oxygen and nitrogen glow as auroras.</p>
-            <ul>
-              <li><strong>On the Sun</strong>: Big eruptions (solar flares and CMEs) throw material into space. Fast solar wind streams from coronal holes also increase gusts.</li>
-              <li><strong>Travel time</strong>: These space "gusts" usually take about <strong>1–3 days</strong> to reach Earth (15–48 hours is common). Faster ones arrive sooner.</li>
-              <li><strong>Misses or "wrong" direction</strong>: Sometimes the cloud flies past Earth, or its magnetic "compass" points the wrong way so it doesn't connect well—result: little or no show.</li>
-              <li><strong>"Cannibal" solar storms</strong>: A faster eruption can catch a slower one, merging into a stronger hit at Earth, which can boost aurora chances.</li>
-            </ul>
-          </article>
-
-          <article class="card">
-            <h3 id="aurora-scientific">More scientific</h3>
-            <p>Solar activity launches <em>coronal mass ejections</em> (CMEs) and high-speed streams that carry plasma and an embedded interplanetary magnetic field (IMF). When the IMF's <strong>Bz</strong> component turns <strong>southward (negative)</strong>, magnetic reconnection at Earth's dayside magnetopause efficiently transfers solar-wind energy into the magnetosphere.</p>
-            <ul>
-              <li><strong>Transit</strong>: CMEs propagate ~<strong>400–1200 km/s</strong> over 1 AU, arriving typically in <strong>~1–3 days</strong> depending on speed and drag; co-rotating interaction regions (CIRs) from coronal holes have similar day-scale arrivals.</li>
-              <li><strong>Coupling</strong>: Southward IMF (Bz &lt; 0) enhances dayside reconnection; northward IMF (Bz &gt; 0) suppresses coupling, reducing auroral activity despite elevated speed/density.</li>
-              <li><strong>Misses and glancing blows</strong>: CME trajectories or widths can spare Earth or only graze it, yielding weak impacts.</li>
-              <li><strong>Cannibal CMEs</strong>: Successive CMEs can interact; a faster CME may overtake a slower one, forming a complex ejecta/shock and producing stronger geomagnetic responses.</li>
-              <li><strong>Emission</strong>: Injected particles and currents energize electrons that precipitate along field lines into the auroral oval, exciting atmospheric <strong>O</strong> (green ~557.7 nm; red ~630.0 nm) and <strong>N<sub>2</sub></strong> (purples), creating visible aurora.</li>
-            </ul>
-          </article>
-        </div>
-        <footer class="section-footer">
-          <a href="#home" class="to-top" aria-label="Back to top of page">↑ Back to top</a>
-        </footer>
-        <script type="application/ld+json">
-        {
-          "@context": "https://schema.org",
-          "@type": "Article",
-          "headline": "What causes the Northern Lights? (Aurora 101)",
-          "about": ["Aurora", "Northern Lights", "Aurora Borealis", "Solar wind", "Coronal mass ejection", "Geomagnetic storm"],
-          "mainEntityOfPage": {
-            "@type": "WebPage",
-            "@id": "https://aurora-help.com/#aurora-101"
-          },
-          "author": {
-            "@type": "Organization",
-            "name": "Aurora-Help"
-          },
-          "articleSection": ["Simple explanation", "Scientific explanation"],
-          "hasPart": [
-            {
-              "@type": "CreativeWork",
-              "headline": "In simple terms",
-              "url": "https://aurora-help.com/#aurora-simple"
-            },
-            {
-              "@type": "CreativeWork",
-              "headline": "More scientific",
-              "url": "https://aurora-help.com/#aurora-scientific"
-            }
-          ]
-        }
-        </script>
-      </div>
-    </section>
+    <!-- moved Aurora 101 section below Guide -->
 
     <!-- Features -->
     <section id="features" class="section features">
@@ -391,6 +369,72 @@
       </div>
     </section>
 
+    <!-- Aurora 101: What causes auroras? -->
+    <section id="aurora-101" class="section learn">
+      <div class="container">
+        <header class="section-header">
+          <h2>What causes the Northern Lights?</h2>
+          <p>Two explanations: one in simple terms and one more scientific.</p>
+          <p>Learn what causes auroras (Northern Lights): how solar flares and coronal mass ejections (CMEs) launch solar wind toward Earth, how long it takes to arrive, why some storms miss or have the wrong magnetic direction, and how interacting or "cannibal" CMEs can intensify geomagnetic storms.</p>
+        </header>
+        <div class="grid">
+          <article class="card">
+            <h3 id="aurora-simple">In simple terms</h3>
+            <p>The Sun sometimes blasts out gusts and clouds of charged gas. When those reach Earth and connect with our planet's magnetic field, energy flows into the upper atmosphere and makes oxygen and nitrogen glow as auroras.</p>
+            <ul>
+              <li><strong>On the Sun</strong>: Big eruptions (solar flares and CMEs) throw material into space. Fast solar wind streams from coronal holes also increase gusts.</li>
+              <li><strong>Travel time</strong>: These space "gusts" usually take about <strong>1–3 days</strong> to reach Earth (15–48 hours is common). Faster ones arrive sooner.</li>
+              <li><strong>Misses or "wrong" direction</strong>: Sometimes the cloud flies past Earth, or its magnetic "compass" points the wrong way so it doesn't connect well—result: little or no show.</li>
+              <li><strong>"Cannibal" solar storms</strong>: A faster eruption can catch a slower one, merging into a stronger hit at Earth, which can boost aurora chances.</li>
+            </ul>
+          </article>
+
+          <article class="card">
+            <h3 id="aurora-scientific">More scientific</h3>
+            <p>Solar activity launches <em>coronal mass ejections</em> (CMEs) and high-speed streams that carry plasma and an embedded interplanetary magnetic field (IMF). When the IMF's <strong>Bz</strong> component turns <strong>southward (negative)</strong>, magnetic reconnection at Earth's dayside magnetopause efficiently transfers solar-wind energy into the magnetosphere.</p>
+            <ul>
+              <li><strong>Transit</strong>: CMEs propagate ~<strong>400–1200 km/s</strong> over 1 AU, arriving typically in <strong>~1–3 days</strong> depending on speed and drag; co-rotating interaction regions (CIRs) from coronal holes have similar day-scale arrivals.</li>
+              <li><strong>Coupling</strong>: Southward IMF (Bz &lt; 0) enhances dayside reconnection; northward IMF (Bz &gt; 0) suppresses coupling, reducing auroral activity despite elevated speed/density.</li>
+              <li><strong>Misses and glancing blows</strong>: CME trajectories or widths can spare Earth or only graze it, yielding weak impacts.</li>
+              <li><strong>Cannibal CMEs</strong>: Successive CMEs can interact; a faster CME may overtake a slower one, forming a complex ejecta/shock and producing stronger geomagnetic responses.</li>
+              <li><strong>Emission</strong>: Injected particles and currents energize electrons that precipitate along field lines into the auroral oval, exciting atmospheric <strong>O</strong> (green ~557.7 nm; red ~630.0 nm) and <strong>N<sub>2</sub></strong> (purples), creating visible aurora.</li>
+            </ul>
+          </article>
+        </div>
+        <footer class="section-footer">
+          <a href="#home" class="to-top" aria-label="Back to top of page">↑ Back to top</a>
+        </footer>
+        <script type="application/ld+json">
+        {
+          "@context": "https://schema.org",
+          "@type": "Article",
+          "headline": "What causes the Northern Lights? (Aurora 101)",
+          "about": ["Aurora", "Northern Lights", "Aurora Borealis", "Solar wind", "Coronal mass ejection", "Geomagnetic storm"],
+          "mainEntityOfPage": {
+            "@type": "WebPage",
+            "@id": "https://aurora-help.com/#aurora-101"
+          },
+          "author": {
+            "@type": "Organization",
+            "name": "Aurora-Help"
+          },
+          "articleSection": ["Simple explanation", "Scientific explanation"],
+          "hasPart": [
+            {
+              "@type": "CreativeWork",
+              "headline": "In simple terms",
+              "url": "https://aurora-help.com/#aurora-simple"
+            },
+            {
+              "@type": "CreativeWork",
+              "headline": "More scientific",
+              "url": "https://aurora-help.com/#aurora-scientific"
+            }
+          ]
+        }
+        </script>
+      </div>
+    </section>
 
     <!-- Footer -->
     <footer class="site-footer">

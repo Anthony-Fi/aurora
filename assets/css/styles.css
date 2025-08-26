@@ -218,6 +218,8 @@ img, svg { display: block; max-width: 100%; height: auto; }
 
 /* Mini tables */
 .mini-table-box { width: 100%; max-height: 160px; overflow: auto; margin-top: 10px; }
+.mini-table-box:focus { outline: none; }
+.mini-table-box:focus-visible { outline: 3px solid var(--ring); outline-offset: 2px; border-radius: 10px; }
 .mini-table { width: 100%; border-collapse: collapse; font-size: 12px; }
 .mini-table thead th { position: sticky; top: 0; background: var(--surface); color: var(--muted); text-align: left; padding: 6px 8px; border-bottom: 1px solid rgba(255,255,255,0.12); }
 .mini-table tbody td { padding: 6px 8px; border-bottom: 1px solid rgba(255,255,255,0.06); }

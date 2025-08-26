@@ -20,7 +20,6 @@
           nav.classList.remove('open');
           toggle.setAttribute('aria-expanded', 'false');
         }
-        // close nav only; no nested function declarations
       });
     });
   }
@@ -38,6 +37,158 @@
   };
   window.addEventListener('scroll', onScroll, { passive: true });
   onScroll();
+
+  // --- Accessibility: toggleable data tables for charts ---
+  function bindToggleOnce(btnId, wrapId) {
+    const btn = document.getElementById(btnId);
+    const wrap = document.getElementById(wrapId);
+    if (!btn || !wrap || btn.dataset.bound) return;
+    // Make region programmatically focusable for keyboard users
+    if (!wrap.hasAttribute('tabindex')) {
+      wrap.setAttribute('tabindex', '-1');
+    }
+
+    // Determine access key and set it once
+    let ak = '';
+    if (btnId.includes('wind')) ak = 'w';
+    else if (btnId.includes('kp')) ak = 'k';
+    else if (btnId.includes('bx')) ak = 'b';
+    if (ak) {
+      try { btn.setAttribute('accesskey', ak); } catch (_) {}
+    }
+
+    const LS_KEY = `aurora.table.${wrapId}.visible`;
+    const applyVisibility = (show) => {
+      if (show) {
+        wrap.removeAttribute('hidden');
+        btn.setAttribute('aria-expanded', 'true');
+        btn.textContent = 'Hide data table';
+        if (ak) {
+          const hint = ak.toUpperCase();
+          btn.title = `${btn.textContent} (Shortcut: Alt+Shift+${hint})`;
+        }
+        try { localStorage.setItem(LS_KEY, '1'); } catch (_) {}
+        // Move focus to region so its contents are reachable by keyboard
+        try { wrap.focus({ preventScroll: false }); } catch (_) { try { wrap.focus(); } catch (_) {} }
+      } else {
+        wrap.setAttribute('hidden', '');
+        btn.setAttribute('aria-expanded', 'false');
+        btn.textContent = 'Show data table';
+        if (ak) {
+          const hint = ak.toUpperCase();
+          btn.title = `${btn.textContent} (Shortcut: Alt+Shift+${hint})`;
+        }
+        try { localStorage.setItem(LS_KEY, '0'); } catch (_) {}
+      }
+    };
+
+    // Restore previous visibility preference; default to current DOM state
+    let initialShow = !wrap.hasAttribute('hidden');
+    try {
+      const saved = localStorage.getItem(LS_KEY);
+      if (saved === '1') initialShow = true;
+      else if (saved === '0') initialShow = false;
+    } catch (_) {}
+    applyVisibility(initialShow);
+
+    // Click handler toggles state and persists
+    btn.addEventListener('click', () => {
+      const willShow = wrap.hasAttribute('hidden');
+      applyVisibility(willShow);
+    });
+
+    btn.dataset.bound = '1';
+  }
+
+  function setTableRows(tbodyEl, rows) {
+    if (!tbodyEl) return;
+    if (!Array.isArray(rows) || rows.length === 0) {
+      tbodyEl.innerHTML = '';
+      return;
+    }
+    const html = rows.map((r) => `<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td>${r.length > 2 ? `<td>${esc(r[2])}</td>` : ''}</tr>`).join('');
+    tbodyEl.innerHTML = html;
+  }
+
+  const fmtNum = (v, d) => Number.isFinite(v) ? (d != null ? Number(v).toFixed(d) : String(v)) : '--';
+
+  // --- Accessibility helpers for charts (global) ---
+  function updateWindAccessibility(sw, tz) {
+    try {
+      const tzChoice = tz || getSelectedTZ();
+      const sumEl = document.getElementById('wind-summary');
+      const tbody = document.getElementById('wind-table-body');
+      if (sumEl) {
+        const sNow = asFiniteNumber(sw.now && sw.now.speed) ?? lastFinite(sw.speed);
+        const dNow = asFiniteNumber(sw.now && sw.now.density) ?? lastFinite(sw.density);
+        const t = sw.updatedAt ? fmtHM(sw.updatedAt, tzChoice) : '--:--';
+        const sat = (sw.source && sw.source.satellite) ? sw.source.satellite : '—';
+        sumEl.textContent = `Latest solar wind at ${t} (${sat}): speed ${fmtNum(sNow, 0)} km/s, density ${fmtNum(dNow, 2)} p/cc.`;
+      }
+      if (tbody) {
+        const times = Array.isArray(sw.times) ? sw.times : (Array.isArray(sw.labels) ? sw.labels : []);
+        const spd = Array.isArray(sw.speed) ? sw.speed : [];
+        const den = Array.isArray(sw.density) ? sw.density : [];
+        const n = Math.min(times.length, spd.length, den.length);
+        const rows = [];
+        for (let i = 0; i < n; i++) {
+          const tt = typeof times[i] === 'string' && times[i].includes('T') ? fmtHM(times[i], tzChoice) : String(times[i] ?? '');
+          const s = Number(spd[i]);
+          const d = Number(den[i]);
+          rows.push([tt, fmtNum(s, 0), fmtNum(d, 2)]);
+        }
+        setTableRows(tbody, rows);
+      }
+    } catch (_) {}
+  }
+
+  function updateKpAccessibility(kp, tz) {
+    try {
+      const sumEl = document.getElementById('kp-summary');
+      const tbody = document.getElementById('kp-table-body');
+      if (sumEl && kp && Array.isArray(kp.values)) {
+        // Find last finite
+        let idx = -1;
+        for (let i = kp.values.length - 1; i >= 0; i--) { const v = Number(kp.values[i]); if (Number.isFinite(v)) { idx = i; break; } }
+        const val = idx >= 0 ? Number(kp.values[idx]) : NaN;
+        const label = Array.isArray(kp.labels) && idx >= 0 ? String(kp.labels[idx]) : '';
+        sumEl.textContent = `Latest Kp ${fmtNum(val, 0)}${label ? ` at ${label}` : ''}.`;
+      }
+      if (tbody && kp) {
+        const labels = Array.isArray(kp.labels) ? kp.labels : [];
+        const values = Array.isArray(kp.values) ? kp.values : [];
+        const n = Math.min(labels.length, values.length);
+        const rows = [];
+        for (let i = 0; i < n; i++) {
+          rows.push([String(labels[i] ?? ''), fmtNum(Number(values[i]), 0)]);
+        }
+        setTableRows(tbody, rows);
+      }
+    } catch (_) {}
+  }
+
+  function updateBxAccessibility(data, tz) {
+    try {
+      const tzChoice = tz || getSelectedTZ();
+      const sumEl = document.getElementById('bx-summary');
+      const tbody = document.getElementById('bx-table-body');
+      const rows = Array.isArray(data.rows) ? data.rows : [];
+      if (sumEl) {
+        // last finite
+        let idx = -1;
+        for (let i = rows.length - 1; i >= 0; i--) { const v = rows[i] && Number(rows[i].bx); if (Number.isFinite(v)) { idx = i; break; } }
+        const val = idx >= 0 ? Number(rows[idx].bx) : NaN;
+        const timeIso = idx >= 0 ? rows[idx].time : data.updatedAt;
+        const t = timeIso ? fmtHM(timeIso, tzChoice) : '--:--';
+        const st = (data.station || 'KEV').toUpperCase();
+        sumEl.textContent = `Latest Bx at ${t} (${st}): ${fmtNum(val, 1)} nT.`;
+      }
+      if (tbody) {
+        const out = rows.map((r) => [fmtHM(r.time, tzChoice), fmtNum(Number(r.bx), 1)]);
+        setTableRows(tbody, out);
+      }
+    } catch (_) {}
+  }
 
   // Dashboard: fetch API data and render charts
   const $ = (id) => {
@@ -141,6 +292,8 @@
       updateVxBzCard(sw, tz);
       updateDensityCaption(sw, tz);
       updateBoyleCaption(sw, tz);
+      // Update accessibility summaries/tables
+      updateWindAccessibility(sw, tz);
     }
     // Re-render Dst mini chart with new TZ if present
     if (state.data && state.data.dst) {
@@ -160,6 +313,11 @@
     // Re-render FMI Bx chart with new TZ if present
     if (state.data && state.data.fmiBx) {
       renderBxChart(state.data.fmiBx, tz);
+      updateBxAccessibility(state.data.fmiBx, tz);
+    }
+    // Re-render Kp table/summary with TZ if useful (labels may be strings already)
+    if (state.data && state.data.kp) {
+      updateKpAccessibility(state.data.kp, tz);
     }
   }
 
@@ -885,6 +1043,7 @@
       state.data.fmiBx = data;
       populateBxStationOptions(data.stations, data.station);
       renderBxChart(data, getSelectedTZ());
+      updateBxAccessibility(data, getSelectedTZ());
     } catch (e) { log('loadBx error', e); }
   }
 
@@ -961,6 +1120,8 @@
         }
         updateDensityCaption(sw, tz);
         updateBoyleCaption(sw, tz);
+        // Populate wind accessibility features
+        updateWindAccessibility(sw, tz);
         // Update mini caption with aligned time and now values (match Updated at)
         const capEl = document.getElementById('mini-caption-bzbt');
         if (capEl && sw) {
@@ -985,6 +1146,7 @@
       if (kp) {
         ensureKpChart(kpCtx, kp.labels, kp.values);
         log('kp chart updated');
+        updateKpAccessibility(kp, getSelectedTZ());
       } else {
         log('no kp data');
       }
@@ -1042,4 +1204,9 @@
     }
   }
   initRadarMap();
+
+  // Bind table toggles once DOM is ready (IIFE already running after parse)
+  bindToggleOnce('toggle-wind-table', 'wind-table-wrap');
+  bindToggleOnce('toggle-kp-table', 'kp-table-wrap');
+  bindToggleOnce('toggle-bx-table', 'bx-table-wrap');
 })();
