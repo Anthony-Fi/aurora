@@ -281,6 +281,16 @@ img, svg { display: block; max-width: 100%; height: auto; }
   .guide .grid { grid-template-columns: 1fr; }
 }
 
+/* Learn (Aurora 101) */
+.learn .grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+@media (max-width: 1000px) {
+  .learn .grid { grid-template-columns: 1fr; }
+}
+
 /* Breakpoints for 3x2 -> 2x3 -> 1x6 */
 @media (max-width: 1500px) {
   .features .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
