@@ -120,6 +120,43 @@ img, svg { display: block; max-width: 100%; height: auto; }
 }
 .btn-outline:hover { background: rgba(255,255,255,0.06); }
 
+/* Segmented toggle (radio-based) */
+.seg-toggle {
+  display: inline-grid;
+  grid-auto-flow: column;
+  gap: 2px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px;
+  padding: 2px;
+}
+.seg-toggle input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  pointer-events: none;
+}
+.seg-toggle label {
+  padding: 6px 10px;
+  border-radius: 8px;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 12px;
+  cursor: pointer;
+  user-select: none;
+  border: 1px solid transparent;
+}
+.seg-toggle input[type="radio"]:checked + label {
+  background: linear-gradient(180deg, rgba(124,92,255,0.22), rgba(124,92,255,0.12));
+  color: var(--text);
+  border-color: rgba(124,92,255,0.5);
+}
+.seg-toggle input[type="radio"]:focus-visible + label {
+  outline: 3px solid var(--ring);
+  outline-offset: 2px;
+}
+
 .hero-media { display: grid; place-items: center; }
 .glass-card {
   background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
@@ -317,6 +354,47 @@ img, svg { display: block; max-width: 100%; height: auto; }
 .card .icon { font-size: 22px; }
 .card h3 { margin: 10px 0 6px; font-size: 18px; }
 .card p { margin: 0; color: var(--muted); }
+
+/* Solar & Lunar Panel */
+#solarlunar-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.solar-section, .lunar-section, .twilight-section {
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--card);
+}
+
+.solar-section h4, .lunar-section h4, .twilight-section h4 {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  color: var(--primary);
+}
+
+.solar-data, .lunar-data, .twilight-data {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.data-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+}
+
+.data-item .label {
+  color: var(--muted);
+}
+
+.data-item .value {
+  font-weight: 500;
+  text-align: right;
+}
 
 /* CTA */
 .cta-inner {

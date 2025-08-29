@@ -176,15 +176,30 @@
       if (sumEl) {
         // last finite
         let idx = -1;
-        for (let i = rows.length - 1; i >= 0; i--) { const v = rows[i] && Number(rows[i].bx); if (Number.isFinite(v)) { idx = i; break; } }
-        const val = idx >= 0 ? Number(rows[idx].bx) : NaN;
+        for (let i = rows.length - 1; i >= 0; i--) { 
+          const v = rows[i] && Number(rows[i].bx); 
+          if (Number.isFinite(v)) { idx = i; break; } 
+        }
+        const bxVal = idx >= 0 ? Number(rows[idx].bx) : NaN;
+        const bzVal = idx >= 0 && rows[idx].bz !== undefined ? Number(rows[idx].bz) : NaN;
         const timeIso = idx >= 0 ? rows[idx].time : data.updatedAt;
         const t = timeIso ? fmtHM(timeIso, tzChoice) : '--:--';
         const st = (data.station || 'KEV').toUpperCase();
-        sumEl.textContent = `Latest Bx at ${t} (${st}): ${fmtNum(val, 1)} nT.`;
+        
+        // Update summary to include both Bx and Bz
+        if (Number.isFinite(bzVal)) {
+          sumEl.textContent = `Latest Bx/Bz at ${t} (${st}): Bx ${fmtNum(bxVal, 1)} nT, Bz ${fmtNum(bzVal, 1)} nT.`;
+        } else {
+          sumEl.textContent = `Latest Bx at ${t} (${st}): ${fmtNum(bxVal, 1)} nT.`;
+        }
       }
       if (tbody) {
-        const out = rows.map((r) => [fmtHM(r.time, tzChoice), fmtNum(Number(r.bx), 1)]);
+        // Update table to include both Bx and Bz columns
+        const out = rows.map((r) => [
+          fmtHM(r.time, tzChoice), 
+          fmtNum(Number(r.bx), 1),
+          fmtNum(Number(r.bz), 1)
+        ]);
         setTableRows(tbody, out);
       }
     } catch (_) {}
@@ -932,20 +947,52 @@
     // Not in default station list served by our API but present on IMAGE pages
     SOD: 'Sodankylä',
   };
-  function ensureBxChart(ctx, labels, bx) {
+  // --- Updated: Dynamic y-axis scaling for Bx/Bz chart ---
+  // --- Dual y-axis: Bx left (y1), Bz right (y2) ---
+  function ensureBxChart(ctx, labels, bx, bz, bxMin, bxMax, bzMin, bzMax) {
     if (!ctx || !window.Chart) return null;
     const rootStyle = getComputedStyle(document.documentElement);
     const muted = rootStyle.getPropertyValue('--muted').trim() || '#9aa4b2';
+    const hasBz = Array.isArray(bz) && bz.length > 0;
     if (state.charts.bx) {
       state.charts.bx.data.labels = labels;
       state.charts.bx.data.datasets[0].data = bx;
+      if (hasBz) {
+        if (state.charts.bx.data.datasets.length > 1) {
+          state.charts.bx.data.datasets[1].data = bz;
+        } else {
+          state.charts.bx.data.datasets.push({ 
+            label: 'Bz (nT)', 
+            data: bz, 
+            borderColor: '#ef4444', 
+            backgroundColor: 'rgba(239,68,68,.15)', 
+            tension: .25, 
+            fill: true, 
+            pointRadius: 0,
+            yAxisID: 'y2'
+          });
+        }
+      } else if (state.charts.bx.data.datasets.length > 1) {
+        state.charts.bx.data.datasets.splice(1, 1);
+      }
+      // Update both y-axes scaling
+      if (state.charts.bx.options && state.charts.bx.options.scales) {
+        if (state.charts.bx.options.scales.y1) {
+          state.charts.bx.options.scales.y1.min = bxMin;
+          state.charts.bx.options.scales.y1.max = bxMax;
+        }
+        if (state.charts.bx.options.scales.y2) {
+          state.charts.bx.options.scales.y2.min = bzMin;
+          state.charts.bx.options.scales.y2.max = bzMax;
+        }
+      }
       state.charts.bx.update();
       return state.charts.bx;
     }
     const zeroLine = {
       id: 'zeroLineBx',
       afterDraw(chart) {
-        const y = chart.scales && chart.scales.y ? chart.scales.y : null;
+        const y = chart.scales && chart.scales.y1 ? chart.scales.y1 : null;
         if (!y) return;
         const yZero = y.getPixelForValue(0);
         const { left, right } = chart.chartArea;
@@ -960,21 +1007,56 @@
         ctx2.restore();
       },
     };
+    const datasets = [
+      { label: 'Bx (nT)', data: bx, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,.15)', tension: .25, fill: true, pointRadius: 0, yAxisID: 'y1' }
+    ];
+    if (hasBz) {
+      datasets.push({ 
+        label: 'Bz (nT)', 
+        data: bz, 
+        borderColor: '#ef4444', 
+        backgroundColor: 'rgba(239,68,68,.15)', 
+        tension: .25, 
+        fill: true, 
+        pointRadius: 0,
+        yAxisID: 'y2'
+      });
+    }
     state.charts.bx = new Chart(ctx, {
       type: 'line',
       data: {
         labels,
-        datasets: [
-          { label: 'Bx (nT)', data: bx, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,.15)', tension: .25, fill: true, pointRadius: 0 },
-        ],
+        datasets,
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
+        plugins: { 
+          legend: { 
+            display: hasBz, // Only show legend if we have both Bx and Bz
+            labels: { color: muted }
+          } 
+        },
         scales: {
           x: { ticks: { display: true, color: muted, autoSkip: true, maxTicksLimit: 6 }, grid: { display: false } },
-          y: { ticks: { display: true, color: muted, maxTicksLimit: 5 }, grid: { color: 'rgba(255,255,255,0.06)' } },
+          y1: {
+            type: 'linear',
+            position: 'left',
+            min: bxMin,
+            max: bxMax,
+            title: { display: true, text: 'Bx (nT)', color: '#3b82f6' },
+            ticks: { display: true, color: '#3b82f6', maxTicksLimit: 5 },
+            grid: { color: 'rgba(59,130,246,0.08)' }
+          },
+          y2: {
+            type: 'linear',
+            position: 'right',
+            min: bzMin,
+            max: bzMax,
+            title: { display: true, text: 'Bz (nT)', color: '#ef4444' },
+            ticks: { display: true, color: '#ef4444', maxTicksLimit: 5 },
+            grid: { drawOnChartArea: false }
+          }
         },
       },
       plugins: [zeroLine],
@@ -1006,6 +1088,8 @@
     }
   }
 
+  // --- Updated: Pass dynamic min/max to chart ---
+  // --- Dual y-axis: Pass separate min/max for Bx and Bz ---
   function renderBxChart(data, tz) {
     try {
       const cap = $('#bx-caption');
@@ -1015,11 +1099,20 @@
       const rows = Array.isArray(data.rows) ? data.rows : [];
       const choice = tz || getSelectedTZ();
       const labels = rows.map((r) => r && r.time ? fmtHM(r.time, choice) : '--:--');
-      const values = rows.map((r) => {
+      const bxValues = rows.map((r) => {
         const bxv = r ? Number(r.bx) : NaN;
         return Number.isFinite(bxv) ? Number(bxv.toFixed(1)) : null;
       });
-      ensureBxChart(ctx, labels, values);
+      const bzValues = rows.map((r) => {
+        const bzv = r ? Number(r.bz) : NaN;
+        return Number.isFinite(bzv) ? Number(bzv.toFixed(1)) : null;
+      });
+      // Compute min/max for both axes, margin of 5
+      let bxMin = typeof data.minX === 'number' ? Math.floor(data.minX - 5) : undefined;
+      let bxMax = typeof data.maxX === 'number' ? Math.ceil(data.maxX + 5) : undefined;
+      let bzMin = typeof data.minZ === 'number' ? Math.floor(data.minZ - 5) : undefined;
+      let bzMax = typeof data.maxZ === 'number' ? Math.ceil(data.maxZ + 5) : undefined;
+      ensureBxChart(ctx, labels, bxValues, bzValues, bxMin, bxMax, bzMin, bzMax);
       if (cap) {
         const t = data.updatedAt ? fmtHM(data.updatedAt, choice) : '--:--';
         const st = (data.station || 'KEV').toUpperCase();
@@ -1029,21 +1122,29 @@
     } catch (_) {}
   }
 
+  // --- Updated: Load FMI Bx/Bz from new real-time text endpoint ---
   async function loadBx(station) {
     try {
       const sel = $('#bx-station');
       const st = (station || (sel && sel.value) || 'KEV').toUpperCase();
-      const rangeSel = $('#bx-range');
-      let minutes = parseInt(rangeSel && rangeSel.value ? rangeSel.value : '60', 10);
-      if (!Number.isFinite(minutes)) minutes = 60;
-      // Clamp to backend limits
-      minutes = Math.max(5, Math.min(180, minutes));
-      const data = await fetchJson(`/api/fmi/bx?station=${encodeURIComponent(st)}&minutes=${minutes}`).catch(() => null);
+      // No range for textdata endpoint, always returns 24h
+      const data = await fetchJson(`/api/fmi/textdata?station=${encodeURIComponent(st)}`).catch(() => null);
       if (!data) return;
-      state.data.fmiBx = data;
-      populateBxStationOptions(data.stations, data.station);
-      renderBxChart(data, getSelectedTZ());
-      updateBxAccessibility(data, getSelectedTZ());
+      // Adapt to new structure
+      const rows = (data.times || []).map((t, i) => ({
+        time: t,
+        bx: data.bx ? data.bx[i] : null,
+        bz: data.bz ? data.bz[i] : null,
+      }));
+      state.data.fmiBx = {
+        station: data.station,
+        rows,
+        updatedAt: rows.length ? rows[rows.length-1].time : null,
+        minX: data.minX, maxX: data.maxX, minZ: data.minZ, maxZ: data.maxZ
+      };
+      populateBxStationOptions([data.station], data.station);
+      renderBxChart(state.data.fmiBx, getSelectedTZ());
+      updateBxAccessibility(state.data.fmiBx, getSelectedTZ());
     } catch (e) { log('loadBx error', e); }
   }
 
@@ -1162,6 +1263,9 @@
   initTZControls();
   loadDashboard();
   setInterval(loadDashboard, 2 * 60 * 1000);
+  // Also auto-refresh Bx chart every 2 minutes
+  setInterval(loadBx, 2 * 60 * 1000);
+
   // Dst initial load + hourly refresh
   loadDst();
   setInterval(loadDst, 60 * 60 * 1000);
@@ -1173,6 +1277,34 @@
       if (!el || !window.L) return;
       const overlay = el.querySelector('.map-overlay');
       const map = L.map(el, { zoomControl: true, attributionControl: true });
+      // Segmented toggle controls (optional in DOM)
+      const toggleWrap = document.getElementById('radar-layer-toggle');
+      const radioDbzv = document.getElementById('radar-layer-dbzv');
+      const radioRr = document.getElementById('radar-layer-rr');
+      const LS_KEY = 'aurora.radar.layer';
+      let layerVal = 'dbzv';
+      try {
+        const saved = localStorage.getItem(LS_KEY);
+        if (saved === 'rr' || saved === 'dbzv') layerVal = saved;
+      } catch (_) {}
+      function wmsLayerName(v) {
+        switch (v) {
+          case 'rr': return 'Radar:suomi_rr_eureffin';
+          case 'dbzv': return 'Radar:radar_ppi_fikau_dbzv';
+          default: return 'Radar:radar_ppi_fikau_dbzv';
+        }
+      }
+      function layerText(val) { return val === 'rr' ? 'rainfall rate' : 'reflectivity'; }
+      function updateAria() {
+        try { el.setAttribute('aria-label', `FMI radar ${layerText(layerVal)} over Finland`); } catch (_) {}
+      }
+      // Sync radios to current value if present
+      try {
+        if (radioDbzv && radioRr) {
+          if (layerVal === 'rr') { radioRr.checked = true; }
+          else { radioDbzv.checked = true; }
+        }
+      } catch (_) {}
       // Finland-centric view
       map.setView([64.9, 26.0], 5);
       // Base map
@@ -1182,12 +1314,15 @@
       }).addTo(map);
       // FMI radar WMS via backend proxy
       const wms = L.tileLayer.wms('/api/fmi/radar', {
-        layers: 'Radar:radar_ppi_fikau_dbzv',
+        layers: wmsLayerName(layerVal),
+        styles: '',
         format: 'image/png',
         transparent: true,
         version: '1.1.1',
-        tileSize: 256,
       }).addTo(map);
+      updateAria();
+      // tileSize: 256,
+      // }).addTo(map);
       // Error handling
       const onErr = () => {
         el.classList.add('error');
@@ -1199,6 +1334,27 @@
       });
       // Periodic refresh to get recent radar frames (cache-busting param)
       setInterval(() => { try { wms.setParams({ t: Date.now() }); } catch (_) {} }, 2 * 60 * 1000);
+
+      // Hook segmented toggle changes
+      function applyLayer(next) {
+        const nv = next === 'rr' ? 'rr' : 'dbzv';
+        layerVal = nv;
+        try { wms.setParams({ layers: wmsLayerName(nv), styles: '', t: Date.now() }); } catch (_) {}
+        updateAria();
+        try { localStorage.setItem(LS_KEY, nv); } catch (_) {}
+        // Keep radios in sync
+        try {
+          if (radioDbzv && radioRr) {
+            radioDbzv.checked = nv === 'dbzv';
+            radioRr.checked = nv === 'rr';
+          }
+        } catch (_) {}
+      }
+      try {
+        if (radioDbzv) radioDbzv.addEventListener('change', (e) => { if (e.target && e.target.checked) applyLayer('dbzv'); });
+        if (radioRr) radioRr.addEventListener('change', (e) => { if (e.target && e.target.checked) applyLayer('rr'); });
+        // Also allow clicking labels to toggle (radios handle this natively)
+      } catch (_) {}
     } catch (e) {
       try { console.error('initRadarMap error', e); } catch (_) {}
     }
@@ -1209,4 +1365,123 @@
   bindToggleOnce('toggle-wind-table', 'wind-table-wrap');
   bindToggleOnce('toggle-kp-table', 'kp-table-wrap');
   bindToggleOnce('toggle-bx-table', 'bx-table-wrap');
+
+  // Solar & Lunar data functionality
+  function getMoonPhaseName(phase) {
+    // phase is a percentage (0-100)
+    if (phase < 0 || phase > 100) return 'Unknown';
+    if (phase < 6.25) return 'New Moon';
+    if (phase < 18.75) return 'Waxing Crescent';
+    if (phase < 31.25) return 'First Quarter';
+    if (phase < 43.75) return 'Waxing Gibbous';
+    if (phase < 56.25) return 'Full Moon';
+    if (phase < 68.75) return 'Waning Gibbous';
+    if (phase < 81.25) return 'Last Quarter';
+    if (phase < 93.75) return 'Waning Crescent';
+    return 'New Moon';
+  }
+
+  function formatTime(dateObj) {
+    if (!dateObj || !dateObj.date) return '--:--';
+    const d = new Date(dateObj.date);
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Helsinki' });
+  }
+
+  function formatTimeRange(startObj, endObj) {
+    const start = formatTime(startObj);
+    const end = formatTime(endObj);
+    if (start === '--:--' || end === '--:--') return '--:-- to --:--';
+    return `${start} to ${end}`;
+  }
+
+  const SOLARLUNAR_LOCATIONS = {
+  helsinki: { name: 'Helsinki, Finland', lat: 60.1699, lon: 24.9384 },
+  lahti: { name: 'Lahti, Finland', lat: 60.9827, lon: 25.6615 },
+  jyvaskyla: { name: 'Jyväskylä, Finland', lat: 62.2426, lon: 25.7473 },
+  oulu: { name: 'Oulu, Finland', lat: 65.0121, lon: 25.4651 },
+  rovaniemi: { name: 'Rovaniemi, Finland', lat: 66.5039, lon: 25.7294 },
+  sodankyla: { name: 'Sodankylä, Finland', lat: 67.3616, lon: 26.6417 },
+  utsjoki: { name: 'Utsjoki, Finland', lat: 69.9072, lon: 27.0276 }
+};
+
+async function fetchSolarLunarData(lat, lon) {
+  try {
+    const url = `/api/solarlunar?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}`;
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching solar/lunar data:', error);
+    throw error;
+  }
+}
+
+function updateSolarLunarDisplay(data, locationKey) {
+  // Update solar data
+  document.getElementById('sunrise-time').textContent = formatTime(data.solar.sunrise);
+  document.getElementById('sunset-time').textContent = formatTime(data.solar.sunset);
+  document.getElementById('sun-altitude').textContent = data.solar.sunAltitude !== undefined ? 
+    `${data.solar.sunAltitude.toFixed(1)}°` : '--°';
+  document.getElementById('sun-azimuth').textContent = data.solar.sunAzimuth !== undefined ? 
+    `${data.solar.sunAzimuth.toFixed(1)}°` : '--°';
+
+  // Update lunar data
+  document.getElementById('moonrise-time').textContent = formatTime(data.lunar.moonrise);
+  document.getElementById('moonset-time').textContent = formatTime(data.lunar.moonset);
+  document.getElementById('moon-phase').textContent = data.lunar.moonPhase !== undefined ? 
+    `${data.lunar.moonPhase.toFixed(1)}%` : '--%';
+  document.getElementById('moon-phase-name').textContent = data.lunar.moonPhaseName || '--';
+
+  // Update twilight data
+  document.getElementById('blue-hour').textContent = formatTimeRange(
+    data.twilight.blueHour?.dawn?.start, data.twilight.blueHour?.dawn?.end);
+  document.getElementById('golden-hour').textContent = formatTimeRange(
+    data.twilight.goldenHour?.dawn?.start, data.twilight.goldenHour?.dawn?.end);
+
+  // Update caption with last updated time
+  const now = new Date();
+  document.getElementById('solarlunar-updated').textContent = 
+    now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Helsinki' });
+}
+
+function initSolarLunar() {
+  const dropdown = document.getElementById('solarlunar-location');
+  let currentLocationKey = dropdown ? dropdown.value : 'helsinki';
+  let refreshTimer = null;
+
+  async function updateForLocation(locKey) {
+    const loc = SOLARLUNAR_LOCATIONS[locKey] || SOLARLUNAR_LOCATIONS['helsinki'];
+    try {
+      const data = await fetchSolarLunarData(loc.lat, loc.lon);
+      updateSolarLunarDisplay(data, locKey);
+    } catch (error) {
+      console.error('Error initializing solar/lunar panel:', error);
+      document.getElementById('solarlunar-content').innerHTML = '<div class="error">Failed to load solar and lunar data.</div>';
+    }
+  }
+
+  // Initial fetch
+  updateForLocation(currentLocationKey);
+
+  // Dropdown change event
+  if (dropdown) {
+    dropdown.addEventListener('change', (e) => {
+      currentLocationKey = e.target.value;
+      updateForLocation(currentLocationKey);
+    });
+  }
+
+  // Periodic refresh every 10 minutes
+  if (refreshTimer) clearInterval(refreshTimer);
+  refreshTimer = setInterval(() => {
+    updateForLocation(currentLocationKey);
+  }, 10 * 60 * 1000);
+}
+
+// Initialize solar/lunar panel
+initSolarLunar();
+
 })();

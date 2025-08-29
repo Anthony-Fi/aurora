@@ -207,23 +207,28 @@
           </article>
         </div>
 
-        <!-- Local Magnetometer (FMI) Bx line chart -->
+        <!-- Local Magnetometer (FMI) Bx/Bz line chart -->
         <article class="card chart-card" aria-live="polite">
           <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;gap:.75rem;flex-wrap:wrap">
-            <h3 style="margin:0">Local Magnetometer — Bx (nT)</h3>
+            <h3 style="margin:0">Local Magnetometer — Bx/Bz (nT) (24 hours)</h3>
             <div class="controls" style="display:flex;align-items:center;gap:.5rem">
               <label for="bx-station" class="sr-only">Station</label>
               <span class="label">Station:</span>
               <select id="bx-station" aria-label="FMI station for Bx">
                 <option value="KEV">KEV</option>
+                <option value="MAS">MAS</option>
+                <option value="KIL">KIL</option>
+                <option value="IVA" selected>IVA</option>
+                <option value="MUO">MUO</option>
+                <option value="PEL">PEL</option>
+                <option value="RAN">RAN</option>
+                <option value="OUJ">OUJ</option>
+                <option value="MEK">MEK</option>
+                <option value="HAN">HAN</option>
+                <option value="NUR">NUR</option>
+                <option value="TAR">TAR</option>
               </select>
-              <label for="bx-range" class="sr-only">Range</label>
-              <span class="label">Range:</span>
-              <select id="bx-range" aria-label="Time range">
-                <option value="60" selected>1h</option>
-                <option value="180">3h</option>
-              </select>
-            </div>
+                          </div>
           </div>
           <div class="chart-box" aria-hidden="false">
             <canvas id="chart-bx" aria-label="Bx last hour line chart" role="img"></canvas>
@@ -233,11 +238,12 @@
           <button id="toggle-bx-table" class="btn btn-outline" type="button" aria-expanded="false" aria-controls="bx-table-wrap" style="margin-top:8px">Show data table</button>
           <div id="bx-table-wrap" class="mini-table-box" hidden role="region" aria-labelledby="bx-table-caption">
             <table id="bx-table" class="mini-table">
-              <caption id="bx-table-caption" class="sr-only">Local magnetometer Bx data table: time and Bx (nT)</caption>
+              <caption id="bx-table-caption" class="sr-only">Local magnetometer Bx/Bz data table: time, Bx (nT), and Bz (nT)</caption>
               <thead>
                 <tr>
                   <th scope="col">Time</th>
                   <th scope="col">Bx (nT)</th>
+                  <th scope="col">Bz (nT)</th>
                 </tr>
               </thead>
               <tbody id="bx-table-body"></tbody>
@@ -303,11 +309,95 @@
             <div class="mini-caption">Source: SOHO/NASA — Note: SOHO imagery may be temporarily unavailable due to upstream issues.</div>
           </article>
           <article class="card" aria-live="polite">
-            <h3>FMI Radar (live)</h3>
+            <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;gap:.75rem;flex-wrap:wrap">
+              <h3 style="margin:0">FMI Radar (live)</h3>
+              <div class="controls" style="display:flex;align-items:center;gap:.5rem">
+                <span class="label">Layer:</span>
+                <div id="radar-layer-toggle" class="seg-toggle" role="radiogroup" aria-label="Radar layer">
+                  <input type="radio" name="radar-layer" id="radar-layer-dbzv" value="dbzv" checked />
+                  <label for="radar-layer-dbzv">Reflectivity</label>
+                  <input type="radio" name="radar-layer" id="radar-layer-rr" value="rr" />
+                  <label for="radar-layer-rr">Rain rate</label>
+                </div>
+              </div>
+            </div>
             <div id="radar-map" class="radar-map" aria-label="FMI radar reflectivity over Finland" role="img">
               <div class="map-overlay">Loading radar…</div>
             </div>
             <div class="mini-caption">Radar data © Finnish Meteorological Institute (FMI) — via OpenWMS. Base map © OpenStreetMap contributors.</div>
+          </article>
+          <article class="card" aria-live="polite">
+            <h3>Solar & Lunar</h3>
+            <div id="solarlunar-content">
+              <div class="solar-section">
+                <h4>Sun</h4>
+                <div class="solar-data">
+                  <div class="data-item">
+                    <span class="label">Sunrise:</span>
+                    <span id="sunrise-time" class="value">--:--</span>
+                  </div>
+                  <div class="data-item">
+                    <span class="label">Sunset:</span>
+                    <span id="sunset-time" class="value">--:--</span>
+                  </div>
+                  <div class="data-item">
+                    <span class="label">Altitude:</span>
+                    <span id="sun-altitude" class="value">--°</span>
+                  </div>
+                  <div class="data-item">
+                    <span class="label">Azimuth:</span>
+                    <span id="sun-azimuth" class="value">--°</span>
+                  </div>
+                </div>
+              </div>
+              <div class="lunar-section">
+                <h4>Moon</h4>
+                <div class="lunar-data">
+                  <div class="data-item">
+                    <span class="label">Moonrise:</span>
+                    <span id="moonrise-time" class="value">--:--</span>
+                  </div>
+                  <div class="data-item">
+                    <span class="label">Moonset:</span>
+                    <span id="moonset-time" class="value">--:--</span>
+                  </div>
+                  <div class="data-item">
+                    <span class="label">Phase:</span>
+                    <span id="moon-phase" class="value">--%</span>
+                  </div>
+                  <div class="data-item">
+                    <span class="label">Name:</span>
+                    <span id="moon-phase-name" class="value">--</span>
+                  </div>
+                </div>
+              </div>
+              <div class="twilight-section">
+                <h4>Twilight</h4>
+                <div class="twilight-data">
+                  <div class="data-item">
+                    <span class="label">Blue Hour:</span>
+                    <span id="blue-hour" class="value">--:-- to --:--</span>
+                  </div>
+                  <div class="data-item">
+                    <span class="label">Golden Hour:</span>
+                    <span id="golden-hour" class="value">--:-- to --:--</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:.75em;margin-bottom:.5em">
+  <label for="solarlunar-location" style="font-weight:500">Location:</label>
+  <select id="solarlunar-location" style="min-width:160px">
+    <option value="helsinki">Helsinki</option>
+    <option value="lahti">Lahti</option>
+    <option value="jyvaskyla">Jyväskylä</option>
+    <option value="oulu">Oulu</option>
+    <option value="rovaniemi">Rovaniemi</option>
+    <option value="sodankyla">Sodankylä</option>
+    <option value="utsjoki">Utsjoki</option>
+  </select>
+</div>
+<div id="solarlunar-caption" class="mini-caption">Data for Helsinki, Finland · Updated at <span id="solarlunar-updated">--:--</span></div>
           </article>
         </div>
       </div>

@@ -12,7 +12,8 @@
     "dev": "node server.js"
   },
   "dependencies": {
-    "express": "^4.19.2",
-    "chart.js": "^4.4.2"
+    "astronomy-engine": "^2.1.19",
+    "chart.js": "^4.4.2",
+    "express": "^4.19.2"
   }
 }
