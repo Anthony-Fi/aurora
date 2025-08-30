@@ -337,8 +337,8 @@
   }
 
   const state = {
-    charts: { wind: null, kp: null, bzMini: null, vxbzMini: null, densityMini: null, boyleMini: null, bx: null, dstMini: null },
-    data: { solarwind: null, kp: null, rx: null, fmiBx: null, dst: null },
+    charts: { wind: null, kp: null, bzMini: null, vxbzMini: null, densityMini: null, boyleMini: null, bx: null, dstMini: null, kp27: null },
+    data: { solarwind: null, kp: null, rx: null, fmiBx: null, dst: null, kp27: null },
   };
 
   const log = (...args) => {
@@ -1484,4 +1484,82 @@ function initSolarLunar() {
 // Initialize solar/lunar panel
 initSolarLunar();
 
+// --- 27-Day Kp Index Bar Chart ---
+function getKpBarColor(kp) {
+  if (kp >= 5) return 'rgba(220, 38, 38, 0.85)'; // red
+  if (kp >= 3) return 'rgba(34, 197, 94, 0.85)'; // green
+  return 'rgba(234, 179, 8, 0.85)'; // yellow
+}
+
+async function fetchKp27Data() {
+  const url = 'https://services.swpc.noaa.gov/text/27-day-outlook.txt';
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error('Failed to fetch Kp outlook');
+  const text = await resp.text();
+  const lines = text.split(/\r?\n/);
+  const kpData = [];
+  for (const line of lines) {
+    // Match lines like: 2025 Aug 25     152          12          4
+    const m = line.match(/^(\d{4} \w{3} \d{2})\s+\d+\s+\d+\s+(\d+)/);
+    if (m) {
+      kpData.push({ date: m[1], kp: Number(m[2]) });
+    }
+  }
+  return kpData;
+}
+
+let kp27Chart = null;
+async function ensureKp27Chart() {
+  const el = document.getElementById('kp27-chart');
+  if (!el) return;
+  let data = [];
+  try {
+    data = await fetchKp27Data();
+  } catch (e) {
+    el.parentElement.innerHTML = '<div class="error">Could not load Kp outlook.</div>';
+    return;
+  }
+  const labels = data.map(d => d.date.slice(5));
+  const values = data.map(d => d.kp);
+  const barColors = data.map(d => getKpBarColor(d.kp));
+
+  if (kp27Chart) { kp27Chart.destroy(); }
+  kp27Chart = new Chart(el.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Kp Index',
+        data: values,
+        backgroundColor: barColors,
+        borderRadius: 3,
+        borderSkipped: false,
+        maxBarThickness: 16,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: { enabled: true }
+      },
+      scales: {
+        x: {
+          ticks: { color: '#aaa', maxTicksLimit: 10, font: { size: 11 } },
+          grid: { display: false }
+        },
+        y: {
+          min: 0, max: 9,
+          ticks: { color: '#aaa', stepSize: 1, font: { size: 11 } },
+          grid: { color: 'rgba(255,255,255,0.08)' }
+        }
+      }
+    }
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  ensureKp27Chart();
+  setInterval(ensureKp27Chart, 2 * 60 * 60 * 1000); // Update every 2 hours
+});
 })();
