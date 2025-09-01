@@ -468,13 +468,22 @@
   }
 
   // --- Weather Temperature metric (Open-Meteo) ---
-  async function loadWeatherTemperature(locationName = 'tesjoki') {
+  const WEATHER_LOCATION_KEY = 'aurora.weather.location';
+  const savedLocation = (() => { try { return localStorage.getItem(WEATHER_LOCATION_KEY); } catch (_) { return null; } })();
+  loadWeatherTemperature(savedLocation); // Load saved or default on page start
+
+  async function loadWeatherTemperature(locationName) {
+    const place = locationName || 'tesjoki';
     try {
-      let loc = WEATHER_LOCATIONS[locationName.toLowerCase()];
-      let displayName = locationName;
+      // Save the new location if one was provided by the user
+      if (locationName) {
+        try { localStorage.setItem(WEATHER_LOCATION_KEY, locationName); } catch (_) {}
+      }
+      let loc = WEATHER_LOCATIONS[place.toLowerCase()];
+      let displayName = place;
       if (!loc) {
         // Try geocoding
-        const geo = await geocodeTown(locationName);
+        const geo = await geocodeTown(place);
         if (geo) {
           loc = { lat: geo.lat, lon: geo.lon };
           displayName = geo.name;
