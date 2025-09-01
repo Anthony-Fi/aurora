@@ -775,17 +775,17 @@ app.get('/api/solarimage', async (req, res) => {
 });
 
 // Helper function to get moon phase name
-function getMoonPhaseName(phase) {
-  // phase is a percentage (0-100)
-  if (phase < 0 || phase > 100) return 'Unknown';
-  if (phase < 6.25) return 'New Moon';
-  if (phase < 18.75) return 'Waxing Crescent';
-  if (phase < 31.25) return 'First Quarter';
-  if (phase < 43.75) return 'Waxing Gibbous';
-  if (phase < 56.25) return 'Full Moon';
-  if (phase < 68.75) return 'Waning Gibbous';
-  if (phase < 81.25) return 'Last Quarter';
-  if (phase < 93.75) return 'Waning Crescent';
+function getMoonPhaseName(phaseAngle) {
+  // phaseAngle is a value in degrees from 0 to 360
+  if (phaseAngle < 0 || phaseAngle > 360) return 'Unknown';
+  if (phaseAngle > 359 || phaseAngle < 1) return 'New Moon';
+  if (phaseAngle >= 1 && phaseAngle < 89) return 'Waxing Crescent';
+  if (phaseAngle >= 89 && phaseAngle <= 91) return 'First Quarter';
+  if (phaseAngle > 91 && phaseAngle < 179) return 'Waxing Gibbous';
+  if (phaseAngle >= 179 && phaseAngle <= 181) return 'Full Moon';
+  if (phaseAngle > 181 && phaseAngle < 269) return 'Waning Gibbous';
+  if (phaseAngle >= 269 && phaseAngle <= 271) return 'Last Quarter';
+  if (phaseAngle > 271 && phaseAngle < 359) return 'Waning Crescent';
   return 'New Moon';
 }
 
@@ -848,8 +848,9 @@ app.get('/api/solarlunar', async (req, res) => {
     const moonrise = Astronomy.SearchRiseSet(Astronomy.Body.Moon, observer, 1, date, 365, 0);
     const moonset = Astronomy.SearchRiseSet(Astronomy.Body.Moon, observer, -1, date, 365, 0);
     
-    // Calculate moon phase
-    const moonPhase = Astronomy.MoonPhase(date);
+    // Calculate moon illumination and phase angle
+    const illum = Astronomy.Illumination(Astronomy.Body.Moon, date);
+    const moonPhaseAngle = Astronomy.MoonPhase(date);
     
     // Calculate twilight times (limitDays = 365)
     const blueHourDawnStart = Astronomy.SearchAltitude(Astronomy.Body.Sun, observer, 1, date, 365, -6.0);
@@ -880,8 +881,8 @@ app.get('/api/solarlunar', async (req, res) => {
     const lunarData = {
       moonrise: formatTime(moonrise),
       moonset: formatTime(moonset),
-      moonPhase: Math.round(moonPhase * 10) / 10,
-      moonPhaseName: getMoonPhaseName(moonPhase)
+      moonPhase: Math.round(illum.phase_fraction * 1000) / 10, // convert fraction to percentage
+      moonPhaseName: getMoonPhaseName(moonPhaseAngle)
     };
     
     const twilightData = {

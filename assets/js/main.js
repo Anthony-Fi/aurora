@@ -729,12 +729,10 @@
       // Update scales
       if (state.charts.wind.options && state.charts.wind.options.scales) {
         if (state.charts.wind.options.scales.y1) {
-          state.charts.wind.options.scales.y1.min = minSpeed;
-          state.charts.wind.options.scales.y1.max = maxSpeed;
+          state.charts.wind.options.scales.y1.suggestedMax = maxSpeed;
         }
         if (state.charts.wind.options.scales.y2) {
-          state.charts.wind.options.scales.y2.min = minDensity;
-          state.charts.wind.options.scales.y2.max = maxDensity;
+          state.charts.wind.options.scales.y2.suggestedMax = maxDensity;
         }
       }
       state.charts.wind.update();
@@ -759,8 +757,8 @@
         interaction: { mode: 'index', intersect: false },
         scales: {
           x: { ticks: { color: muted }, grid: { color: 'rgba(255,255,255,0.06)' } },
-          y1: { type: 'linear', position: 'left', min: minSpeed, max: maxSpeed, ticks: { color: '#7c5cff' }, grid: { color: 'rgba(255,255,255,0.06)' } },
-          y2: { type: 'linear', position: 'right', min: minDensity, max: maxDensity, ticks: { color: '#22c55e' }, grid: { drawOnChartArea: false } },
+          y1: { type: 'linear', position: 'left', min: minSpeed, suggestedMax: maxSpeed, ticks: { color: '#7c5cff' }, grid: { color: 'rgba(255,255,255,0.06)' } },
+          y2: { type: 'linear', position: 'right', min: minDensity, suggestedMax: maxDensity, ticks: { color: '#22c55e' }, grid: { drawOnChartArea: false } },
         },
       },
     });
@@ -795,7 +793,7 @@
         plugins: { legend: { display: false } },
         scales: {
           x: { ticks: { color: muted }, grid: { display: false } },
-          y: { min: 0, max: 9, ticks: { stepSize: 1, color: muted }, grid: { color: 'rgba(255,255,255,0.06)' } },
+          y: { min: 0, suggestedMax: 9, ticks: { stepSize: 1, color: muted }, grid: { color: 'rgba(255,255,255,0.06)' } },
         },
       },
     });
@@ -898,7 +896,7 @@
         plugins: { legend: { display: false } },
         scales: {
           x: { ticks: { display: true, color: muted, autoSkip: true, maxTicksLimit: 6 }, grid: { display: false } },
-          y: { min: -10, max: 10, ticks: { display: true, color: muted, maxTicksLimit: 5 }, grid: { color: 'rgba(255,255,255,0.06)' } },
+          y: { min: -15, suggestedMax: 15, ticks: { display: true, color: muted, maxTicksLimit: 5 }, grid: { color: 'rgba(255,255,255,0.06)' } },
         },
       },
       plugins: [zeroLine],
@@ -930,7 +928,7 @@
         plugins: { legend: { display: false } },
         scales: {
           x: { ticks: { display: true, color: muted, autoSkip: true, maxTicksLimit: 6 }, grid: { display: false } },
-          y: { min: 0, max: 10, ticks: { display: true, color: muted, maxTicksLimit: 5 }, grid: { color: 'rgba(255,255,255,0.06)' } },
+          y: { min: 0, suggestedMax: 12, ticks: { display: true, color: muted, maxTicksLimit: 5 }, grid: { color: 'rgba(255,255,255,0.06)' } },
         },
       },
     });
@@ -972,7 +970,7 @@
         plugins: { legend: { display: false } },
         scales: {
           x: { ticks: { display: true, color: muted, autoSkip: true, maxTicksLimit: 6 }, grid: { display: false } },
-          y: { min: 0, max: 10, ticks: { display: true, color: muted, maxTicksLimit: 5 }, grid: { color: 'rgba(255,255,255,0.06)' } },
+          y: { min: 0, suggestedMax: 12, ticks: { display: true, color: muted, maxTicksLimit: 5 }, grid: { color: 'rgba(255,255,255,0.06)' } },
         },
       },
     });
@@ -1041,7 +1039,7 @@
         plugins: { legend: { display: false } },
         scales: {
           x: { ticks: { display: true, color: muted, autoSkip: true, maxTicksLimit: 6 }, grid: { display: false } },
-          y: { min: -50, max: 50, ticks: { display: true, color: muted, maxTicksLimit: 5 }, grid: { color: 'rgba(255,255,255,0.06)' } },
+          y: { min: -50, suggestedMax: 50, ticks: { display: true, color: muted, maxTicksLimit: 5 }, grid: { color: 'rgba(255,255,255,0.06)' } },
         },
       },
       plugins: [zeroLine],
