@@ -27,7 +27,6 @@ const cache = {
   kp: { data: null, ts: 0 },
   rx: { data: null, ts: 0 },
   fmiBx: {}, // keyed by station: { data, ts }
-  dst: { data: null, ts: 0 },
   fmiRadar: {}, // keyed by sanitized tile request string
   weatherTemp: {}, // keyed by lat,lon
 };
@@ -40,8 +39,6 @@ const SWPC_MAG_URL = 'https://services.swpc.noaa.gov/json/rtsw/rtsw_mag_1m.json'
 const SWPC_KP_URL = 'https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json';
 // Optional time shift in minutes to align feeds to local preference
 const TIME_OFFSET_MIN = (Number.parseInt(process.env.TIME_OFFSET_MIN || '0', 10) || 0);
-// Kyoto WDC realtime Dst (present month). We'll compose filename like dstYYMM.for.request under this base.
-const KYOTO_DST_BASE = 'https://wdc.kugi.kyoto-u.ac.jp/dst_realtime/presentmonth/';
 // FMI OpenWMS Geoserver for radar tiles
 const FMI_WMS_URL = 'https://openwms.fmi.fi/geoserver/wms';
 // FMI Open Data API for magnetometer data
@@ -537,6 +534,7 @@ async function getWeatherTemperature(lat, lon) {
   const now = Date.now();
   const ent = cache.weatherTemp[key];
   if (ent && now - ent.ts < WEATHER_TTL_MS) return ent.data;
+
   const base = 'https://api.open-meteo.com/v1/forecast';
   const url = `${base}?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&current=temperature_2m,cloud_cover`;
   try {
@@ -546,7 +544,13 @@ async function getWeatherTemperature(lat, lon) {
     const current = j?.current;
     const temp = Number.isFinite(current?.temperature_2m) ? current.temperature_2m : null;
     const cloud = Number.isFinite(current?.cloud_cover) ? current.cloud_cover : null;
-    const updatedAt = current?.time ? new Date(current.time).toISOString() : new Date().toISOString();
+
+    // Use the reliable timestamp from the API response
+    // The time is in ISO 8601 format, e.g., "2024-09-01T10:00"
+    // It needs to be converted to a full ISO string with 'Z' for UTC.
+    const apiTime = current?.time ? `${current.time}Z` : new Date().toISOString();
+    const updatedAt = new Date(apiTime).toISOString();
+
     const out = {
       updatedAt,
       location: { latitude: lat, longitude: lon },
@@ -565,215 +569,6 @@ async function getWeatherTemperature(lat, lon) {
   }
 }
 
-// --- Kyoto WDC: Realtime Dst (parse monthly .for.request) ---
-async function getDst() {
-  const nowMs = Date.now();
-  // Cache for 15 minutes, Dst updates hourly
-  const DST_TTL = 15 * 60 * 1000;
-  if (cache.dst.data && nowMs - cache.dst.ts < DST_TTL) return cache.dst.data;
-  // Compose current UTC year/month filename e.g., dst2508.for.request
-  function two(n) { return String(n).padStart(2, '0'); }
-  const nowUtc = new Date();
-  const y = nowUtc.getUTCFullYear();
-  const m = nowUtc.getUTCMonth() + 1;
-  const yy = two(y % 100);
-  const mm = two(m);
-  const filename = `dst${yy}${mm}.for.request`;
-  const url = KYOTO_DST_BASE + filename;
-  // Try current month, then fallback to previous month if not available
-  let text = '';
-  let ok = false;
-  try {
-    const r = await fetch(url, { cache: 'no-store' });
-    if (r.ok) { text = await r.text(); ok = true; }
-  } catch (_) {}
-  if (!ok) {
-    const prev = new Date(Date.UTC(y, m - 2, 1)); // previous month (month is 1-based, Date uses 0-based)
-    const pyy = two(prev.getUTCFullYear() % 100);
-    const pmm = two(prev.getUTCMonth() + 1);
-    const purl = KYOTO_DST_BASE + `dst${pyy}${pmm}.for.request`;
-    try {
-      const r2 = await fetch(purl, { cache: 'no-store' });
-      if (r2.ok) { text = await r2.text(); ok = true; }
-    } catch (_) {}
-  }
-  if (!ok || !text) {
-    // Minimal mock fallback
-    const nowIso = new Date().toISOString();
-    const data = { updatedAt: nowIso, now: null, times: [], values: [], source: { provider: 'Kyoto WDC (mock)', url: 'https://wdc.kugi.kyoto-u.ac.jp/dstdir/' } };
-    cache.dst = { data, ts: nowMs };
-    return data;
-  }
-  // Parse: split into day blocks starting with 'DAY <d>' and extract 24 hourly values
-  function isMissingToken(tok) {
-    const s = String(tok || '').trim();
-    // Strict missing if token is only made of optional sign and 9-run (e.g., '9999', '09999')
-    return /^-?9{4,}$/.test(s);
-  }
-  // Parse a Dst hourly token. Examples:
-  //  '12'   -> 12
-  //  '-7'   -> -7
-  //  '1299999' -> 12 (value with trailing 9-run placeholder)
-  //  '9999'    -> null (missing)
-  function parseDstToken(tok) {
-    const s = String(tok || '').trim();
-    if (!s) return null;
-    // Missing formats: pure 9-runs
-    if (/^-?9{4,}$/.test(s)) return null;
-    // Numeric with trailing 9-run placeholders => take the numeric prefix as valid (e.g., '1299999' -> 12)
-    const m = s.match(/^(-?\d+?)(9{4,})$/);
-    if (m) {
-      const n = parseInt(m[1], 10);
-      return Number.isFinite(n) ? n : null;
-    }
-    // Plain integer (including 0)
-    if (/^-?\d+$/.test(s)) {
-      const n = parseInt(s, 10);
-      return Number.isFinite(n) ? n : null;
-    }
-    return null;
-  }
-  const times = [];
-  const values = [];
-  try {
-    // Normalize whitespace and ensure newlines preserved
-    const norm = text.replace(/\r/g, '');
-    const hasDayBlocks = /\bDAY\s+\d{1,2}\b/.test(norm);
-    if (hasDayBlocks) {
-      // Build a regex that matches: DAY <d> ... (until next DAY or end)
-      const re = /\bDAY\s+(\d{1,2})\b([\s\S]*?)(?=\bDAY\s+\d{1,2}\b|$)/g;
-      let mobj;
-      // Determine year/month actually present by inspecting header if available
-      // Fallback to current UTC
-      let baseYear = y, baseMonth0 = m - 1;
-      const headMatch = norm.match(/(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)\s+(\d{4})/i);
-      if (headMatch) {
-        const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
-        baseMonth0 = Math.max(0, months.indexOf(headMatch[1].toUpperCase()));
-        baseYear = parseInt(headMatch[2], 10) || baseYear;
-      }
-      while ((mobj = re.exec(norm)) !== null) {
-        const day = parseInt(mobj[1], 10);
-        if (!Number.isFinite(day)) continue;
-        const block = mobj[2] || '';
-        // Extract numeric tokens, skipping a possible UT header line like: 'UT 0 1 2 ... 23'
-        // Strategy: detect a run of 24 ascending integers 0..23 at the start (optionally after 'UT'), and skip it.
-        const toks = block.trim().split(/\s+/).filter(Boolean);
-        let startIdx = 0;
-        if (toks.length >= 24) {
-          let idx0 = /^UT$/i.test(toks[0]) ? 1 : 0;
-          if (idx0 + 23 < toks.length) {
-            let header = false;
-            const first = parseInt(toks[idx0], 10);
-            if (Number.isFinite(first)) {
-              // Accept either 0..23 or 1..24
-              if (first === 0 || first === 1) {
-                header = true;
-                for (let h = 0; h < 24; h++) {
-                  const n = parseInt(toks[idx0 + h], 10);
-                  const expected = first === 0 ? h : (h + 1);
-                  if (!Number.isFinite(n) || n !== expected) { header = false; break; }
-                }
-              }
-            }
-            if (header) startIdx = idx0 + 24;
-          }
-        }
-        // If the remaining token list looks like a lone day-flag '0' (no hourly data yet), skip it
-        if ((toks.length - startIdx) < 24 && toks[startIdx] === '0') {
-          startIdx += 1;
-        }
-        const hourly = [];
-        for (let i = startIdx; i < toks.length && hourly.length < 24; i++) {
-          const t = toks[i];
-          const n = parseDstToken(t);
-          hourly.push(Number.isFinite(n) ? n : null);
-        }
-        // Some lines might have fewer than 24; pad with nulls
-        while (hourly.length < 24) hourly.push(null);
-        // Map to times for UT 1..24 => hours 0..23 UTC
-        for (let h = 0; h < 24; h++) {
-          const dt = new Date(Date.UTC(baseYear, baseMonth0, day, h, 0, 0));
-          times.push(dt.toISOString());
-          const v = hourly[h];
-          values.push(Number.isFinite(v) ? v : null);
-        }
-      }
-    } else {
-      // Parse presentmonth dstYYMM.for.request format: lines like
-      // DST2508*25RRX020 <25+ numbers> (first numeric often a flag '0', then 24 hourly values, then optional summary)
-      const lineRe = /^DST(\d{2})(\d{2})\*(\d{2})[A-Z]{3}\d{3}\s+(.*)$/;
-      const lines = norm.split(/\n+/);
-      for (const line of lines) {
-        const s = line.trim();
-        if (!s || /^\[Created at/i.test(s)) continue;
-        const mm = s.match(lineRe);
-        if (!mm) continue;
-        const yy = parseInt(mm[1], 10);
-        const mo = parseInt(mm[2], 10);
-        const dd = parseInt(mm[3], 10);
-        if (!Number.isFinite(yy) || !Number.isFinite(mo) || !Number.isFinite(dd)) continue;
-        const baseYear = 2000 + yy; // Kyoto realtime uses 20YY
-        const baseMonth0 = mo - 1;
-        const toks = (mm[4] || '').trim().split(/\s+/).filter(Boolean);
-        if (!toks.length) continue;
-        // If there are >=25 tokens, assume the first is a flag and the next 24 are hourly values.
-        // Additionally, if the line only has a lone '0' flag (common for future days), skip it too.
-        let startIdx = 0;
-        if (toks.length >= 25) {
-          startIdx = 1;
-        } else if (toks.length >= 1 && toks[0] === '0') {
-          // Lone/day-flag '0' present but no hourly values yet
-          startIdx = 1;
-        }
-        const hourly = toks.slice(startIdx, startIdx + 24);
-        // Pad if short
-        while (hourly.length < 24) hourly.push('');
-        for (let h = 0; h < 24; h++) {
-          const dt = new Date(Date.UTC(baseYear, baseMonth0, dd, h, 0, 0));
-          times.push(dt.toISOString());
-          const tok = hourly[h];
-          const n = parseDstToken(tok);
-          values.push(Number.isFinite(n) ? n : null);
-        }
-      }
-    }
-  } catch (e) {
-    console.error('Dst parse error', e);
-  }
-  // Keep only the last ~7 days to limit payload
-  const maxPoints = 24 * 7;
-  if (times.length > maxPoints) {
-    const start = times.length - maxPoints;
-    times.splice(0, start);
-    values.splice(0, start);
-  }
-  // Determine last finite value and its time (must not be in the future)
-  let lastIdx = -1;
-  const nowCutoff = new Date();
-  for (let i = values.length - 1; i >= 0; i--) {
-    if (!Number.isFinite(values[i])) continue;
-    const ti = new Date(times[i]);
-    if (isNaN(ti)) continue;
-    if (ti <= nowCutoff) { lastIdx = i; break; }
-  }
-  // Trim trailing future placeholders: cut arrays at last finite value if any
-  if (lastIdx >= 0 && lastIdx < times.length - 1) {
-    times.splice(lastIdx + 1);
-    values.splice(lastIdx + 1);
-  }
-  const updatedAt = lastIdx >= 0 ? times[lastIdx] : new Date().toISOString();
-  const nowVal = lastIdx >= 0 ? values[lastIdx] : null;
-  const out = {
-    updatedAt,
-    now: nowVal,
-    times,
-    values,
-    source: { provider: 'WDC for Geomagnetism, Kyoto', url: 'https://wdc.kugi.kyoto-u.ac.jp/dstdir/' },
-  };
-  cache.dst = { data: out, ts: nowMs };
-  return out;
-}
 
 async function getFmiBx(station = 'KEV', minutes = 60) {
   const key = `${station}-${minutes}`;
@@ -953,15 +748,6 @@ app.get('/api/fmi/bx', async (req, res) => {
   }
 });
 
-app.get('/api/dst', async (_req, res) => {
-  try {
-    const data = await getDst();
-    res.json(data);
-  } catch (err) {
-    console.error('dst error', err);
-    res.status(500).json({ error: 'Failed to load Dst data' });
-  }
-});
 
 // --- Solar imagery proxy (limited allowlist) ---
 const SOLAR_IMG_SOURCES = {
@@ -1152,7 +938,6 @@ async function refreshAll() {
   try { await getFmiBx('HAN', 60); } catch (_) {}
   try { await getFmiBx('NUR', 60); } catch (_) {}
   try { await getFmiBx('TAR', 60); } catch (_) {}
-  try { await getDst(); } catch (_) {}
 }
 setInterval(refreshAll, TTL_MS);
 

@@ -487,19 +487,24 @@
       }
       const url = `/api/weather?lat=${encodeURIComponent(loc.lat)}&lon=${encodeURIComponent(loc.lon)}`;
       const data = await fetchJson(url).catch(() => null);
-      updateWeatherTemperatureMetric(data);
+      updateWeatherTemperatureMetric(data, displayName);
       updateWeatherTemperatureTable(data, displayName);
     } catch (e) { log('loadWeatherTemperature error', e); }
   }
 
-  function updateWeatherTemperatureMetric(data) {
+  function updateWeatherTemperatureMetric(data, displayName) {
     try {
-      const el = $('#metric-weather-temp');
-      if (!el) return;
-      const t = data && Number.isFinite(Number(data.temperatureC)) ? Number(data.temperatureC) : null;
-      el.textContent = Number.isFinite(t) ? t.toFixed(1) : '--';
-      if (data && data.updatedAt) {
-        try { el.title = `Updated ${fmtDateTime(data.updatedAt, getSelectedTZ())}`; } catch (_) {}
+      const tempEl = $('#metric-weather-temp');
+      const locEl = $('#metric-weather-location');
+      if (tempEl) {
+        const t = data && Number.isFinite(Number(data.temperatureC)) ? Number(data.temperatureC) : null;
+        tempEl.textContent = Number.isFinite(t) ? t.toFixed(1) : '--';
+        if (data && data.updatedAt) {
+          try { tempEl.title = `Updated ${fmtDateTime(data.updatedAt, getSelectedTZ())}`; } catch (_) {}
+        }
+      }
+      if (locEl && displayName) {
+        locEl.textContent = displayName;
       }
     } catch (_) {}
   }
@@ -509,13 +514,15 @@
     try {
       const tbody = document.getElementById('weatherTableBody');
       if (!tbody) return; // Table not on this page
-      if (!data) { tbody.innerHTML = ''; return; }
+      if (!data) { return; }
       const tz = getSelectedTZ();
       const time = data.updatedAt ? fmtHM(data.updatedAt, tz) : '--:--';
       let locLabel = locationName || '--';
       const t = Number.isFinite(Number(data.temperatureC)) ? Number(data.temperatureC).toFixed(1) : '--';
       const cloud = Number.isFinite(Number(data.cloudCover)) ? Number(data.cloudCover).toFixed(0) + '%' : '--';
-      tbody.innerHTML = `<tr><td>${esc(time)}</td><td>${esc(locLabel)}</td><td>${esc(t)}</td><td>${esc(cloud)}</td></tr>`;
+      const newRow = `<tr><td>${esc(time)}</td><td>${esc(locLabel)}</td><td>${esc(t)}</td><td>${esc(cloud)}</td></tr>`;
+      // Prepend to show latest search first
+      tbody.insertAdjacentHTML('afterbegin', newRow);
     } catch (_) {}
   }
 

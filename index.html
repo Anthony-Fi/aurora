@@ -158,7 +158,7 @@
             <div class="value" id="metric-vxbz">--</div>
           </div>
           <div class="metric" role="listitem">
-            <div class="label">Temperature (°C)</div>
+            <div class="label">Temperature (°C) at <span id="metric-weather-location">Tesjoki</span></div>
             <div class="value" id="metric-weather-temp">--</div>
           </div>
         </div>
@@ -291,13 +291,6 @@
             </div>
             <div id="mini-caption-boyle" class="mini-caption">Boyle index</div>
           </article>
-          <article class="card">
-            <h3>Dst index (nT)</h3>
-            <div class="mini-chart-box" aria-hidden="false">
-              <canvas id="chart-dst-mini" aria-label="Mini Dst chart" role="img"></canvas>
-            </div>
-            <div id="mini-caption-dst" class="mini-caption">Dst: -- nT at --:-- · Kyoto WDC</div>
-          </article>
           <article class="card" aria-live="polite">
             <h3>27-Day Kp Index Forecast</h3>
             <div class="mini-chart-box" style="padding:0;overflow:hidden;border-radius:8px">
@@ -425,6 +418,7 @@
           <label for="weather-location" style="font-weight:500">Location:</label>
           <input type="text" id="weather-location" placeholder="Enter town name, e.g., Helsinki" style="min-width:160px; padding:0.5rem;">
           <button id="weather-search-btn" style="padding:0.5rem; margin-left:0.5rem;">Search</button>
+          <button id="weather-clear-btn" style="padding:0.5rem; margin-left:0.5rem;">Clear</button>
         </div>
         <div class="mini-table-box" role="region" aria-labelledby="weather-table-caption">
           <table class="mini-table weather-data-table">
@@ -538,7 +532,7 @@
             <source srcset="aurora-help.webp" type="image/webp">
             <img src="aurora-help.png" alt="Vibrant aurora borealis illuminating a starry night sky above a forest and reflective lake, showcasing the natural wonder of polar light phenomena." style="max-width:100%; height:auto; border-radius:8px; box-shadow:0 4px 8px rgba(0,0,0,0.1);">
           </picture>
-          <p style="margin-top:1rem; font-size:0.9rem; color:#666;">Image for social media sharing. Right-click to save or share.</p>
+          <p style="margin-top:1rem; font-size:0.9rem; color:#666;">Sarkjarvi, Uusimaa. Right-click to save or share.</p>
         </div>
         <footer class="section-footer">
           <a href="#home" class="to-top" aria-label="Back to top of page">↑ Back to top</a>
