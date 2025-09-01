@@ -186,7 +186,7 @@ img, svg { display: block; max-width: 100%; height: auto; }
 /* Dashboard */
 .dashboard .metrics-grid {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 14px;
   margin-bottom: 20px;
 }
@@ -198,6 +198,10 @@ img, svg { display: block; max-width: 100%; height: auto; }
 }
 .metric .label { color: var(--muted); font-size: 12px; }
 .metric .value { font-weight: 700; font-size: 20px; line-height: 1.2; }
+.metric .value.kp-low { color: #eab308; }      /* Kp 0-2 (Yellow) */
+.metric .value.kp-moderate { color: #22c55e; } /* Kp 2-4 (Green) */
+.metric .value.kp-high { color: #f97316; }      /* Kp 4-5 (Orange) */
+.metric .value.kp-severe { color: #ef4444; }    /* Kp 5+ (Red) */
 
 .charts-grid {
   display: grid;
@@ -433,6 +437,26 @@ img, svg { display: block; max-width: 100%; height: auto; }
   .nav ul { flex-direction: column; padding: 12px; }
   .features .grid { grid-template-columns: 1fr; }
   .dashboard .metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* Image Section */
+.image-section {
+  text-align: center;
+  margin: 2rem 0;
+}
+
+.image-section img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  margin-inline: auto; /* Center the block-level image */
+}
+
+.image-section p {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  color: #666;
 }
 
 /* Accessibility */

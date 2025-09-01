@@ -649,6 +649,25 @@
   }
 
   function updateMetrics(sw, kp, rx) {
+    if (kp && Array.isArray(kp.values)) {
+      const kpVal = lastFinite(kp.values);
+      const kpEl = $('#metric-kp');
+      if (kpEl) {
+        kpEl.textContent = Number.isFinite(kpVal) ? kpVal.toFixed(1) : '--';
+        kpEl.classList.remove('kp-low', 'kp-moderate', 'kp-high', 'kp-severe');
+        if (Number.isFinite(kpVal)) {
+          if (kpVal >= 5) {
+            kpEl.classList.add('kp-severe');
+          } else if (kpVal >= 4) {
+            kpEl.classList.add('kp-high');
+          } else if (kpVal > 2) {
+            kpEl.classList.add('kp-moderate');
+          } else {
+            kpEl.classList.add('kp-low');
+          }
+        }
+      }
+    }
     if (sw) {
       const { bz, bt, speed, density } = (sw.now || {});
       // Resolve with strict finite checks then array fallbacks
