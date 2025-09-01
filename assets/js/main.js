@@ -436,6 +436,89 @@
     return Number.isFinite(n) ? n : null;
   }
 
+  // Weather locations with coordinates
+  const WEATHER_LOCATIONS = {
+    tesjoki: { name: 'Tesjoki', lat: 60.4728, lon: 26.3042 },
+    helsinki: { name: 'Helsinki', lat: 60.1699, lon: 24.9384 },
+    lahti: { name: 'Lahti', lat: 60.9827, lon: 25.6615 },
+    jyvaskyla: { name: 'Jyväskylä', lat: 62.2426, lon: 25.7473 },
+    oulu: { name: 'Oulu', lat: 65.0121, lon: 25.4651 },
+    rovaniemi: { name: 'Rovaniemi', lat: 66.5039, lon: 25.7294 },
+    sodankyla: { name: 'Sodankylä', lat: 67.3616, lon: 26.6417 },
+    utsjoki: { name: 'Utsjoki', lat: 69.9072, lon: 27.0276 }
+  };
+
+  // Geocode town name to lat/lon using Nominatim
+  async function geocodeTown(town) {
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(town)}&limit=1`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.length > 0) {
+        return {
+          lat: parseFloat(data[0].lat),
+          lon: parseFloat(data[0].lon),
+          name: data[0].display_name.split(',')[0] // Take first part of display name
+        };
+      }
+    } catch (e) {
+      log('Geocoding error', e);
+    }
+    return null;
+  }
+
+  // --- Weather Temperature metric (Open-Meteo) ---
+  async function loadWeatherTemperature(locationName = 'tesjoki') {
+    try {
+      let loc = WEATHER_LOCATIONS[locationName.toLowerCase()];
+      let displayName = locationName;
+      if (!loc) {
+        // Try geocoding
+        const geo = await geocodeTown(locationName);
+        if (geo) {
+          loc = { lat: geo.lat, lon: geo.lon };
+          displayName = geo.name;
+        } else {
+          log('Location not found');
+          return;
+        }
+      } else {
+        displayName = loc.name;
+      }
+      const url = `/api/weather?lat=${encodeURIComponent(loc.lat)}&lon=${encodeURIComponent(loc.lon)}`;
+      const data = await fetchJson(url).catch(() => null);
+      updateWeatherTemperatureMetric(data);
+      updateWeatherTemperatureTable(data, displayName);
+    } catch (e) { log('loadWeatherTemperature error', e); }
+  }
+
+  function updateWeatherTemperatureMetric(data) {
+    try {
+      const el = $('#metric-weather-temp');
+      if (!el) return;
+      const t = data && Number.isFinite(Number(data.temperatureC)) ? Number(data.temperatureC) : null;
+      el.textContent = Number.isFinite(t) ? t.toFixed(1) : '--';
+      if (data && data.updatedAt) {
+        try { el.title = `Updated ${fmtDateTime(data.updatedAt, getSelectedTZ())}`; } catch (_) {}
+      }
+    } catch (_) {}
+  }
+
+  // If the backup index page's weather table exists, populate a single-row summary
+  function updateWeatherTemperatureTable(data, locationName) {
+    try {
+      const tbody = document.getElementById('weatherTableBody');
+      if (!tbody) return; // Table not on this page
+      if (!data) { tbody.innerHTML = ''; return; }
+      const tz = getSelectedTZ();
+      const time = data.updatedAt ? fmtHM(data.updatedAt, tz) : '--:--';
+      let locLabel = locationName || '--';
+      const t = Number.isFinite(Number(data.temperatureC)) ? Number(data.temperatureC).toFixed(1) : '--';
+      const cloud = Number.isFinite(Number(data.cloudCover)) ? Number(data.cloudCover).toFixed(0) + '%' : '--';
+      tbody.innerHTML = `<tr><td>${esc(time)}</td><td>${esc(locLabel)}</td><td>${esc(t)}</td><td>${esc(cloud)}</td></tr>`;
+    } catch (_) {}
+  }
+
   // Return times/values filtered to only include the last `hours` hours relative to the last FINITE value's timestamp
   function subsetLastHours(times, values, hours) {
     if (!Array.isArray(times) || !Array.isArray(values) || times.length === 0) {
@@ -479,7 +562,7 @@
       const tz = getSelectedTZ();
       const times = Array.isArray(data.times) ? data.times : [];
       const values = Array.isArray(data.values) ? data.values : [];
-      const sub = subsetLastHours(times, values, 8);
+      const sub = subsetLastHours(times, values, 3);
       const labels = sub.times.map((t) => fmtHM(t, tz));
       ensureDstMiniChart(ctx, labels, sub.values);
       updateDstCaption(data, tz);
@@ -588,10 +671,28 @@
     if (!ctx || !window.Chart) return null;
     const rootStyle = getComputedStyle(document.documentElement);
     const muted = rootStyle.getPropertyValue('--muted').trim() || '#9aa4b2';
+    // Compute dynamic min/max from data
+    const speedFinite = speed.filter(v => v !== null && Number.isFinite(v));
+    const densityFinite = density.filter(v => v !== null && Number.isFinite(v));
+    const minSpeed = speedFinite.length > 0 ? Math.floor(Math.min(...speedFinite) - 10) : undefined;
+    const maxSpeed = speedFinite.length > 0 ? Math.ceil(Math.max(...speedFinite) + 10) : undefined;
+    const minDensity = densityFinite.length > 0 ? Math.floor(Math.min(...densityFinite) - 0.1) : undefined;
+    const maxDensity = densityFinite.length > 0 ? Math.ceil(Math.max(...densityFinite) + 0.1) : undefined;
     if (state.charts.wind) {
       state.charts.wind.data.labels = labels;
       state.charts.wind.data.datasets[0].data = speed;
       state.charts.wind.data.datasets[1].data = density;
+      // Update scales
+      if (state.charts.wind.options && state.charts.wind.options.scales) {
+        if (state.charts.wind.options.scales.y1) {
+          state.charts.wind.options.scales.y1.min = minSpeed;
+          state.charts.wind.options.scales.y1.max = maxSpeed;
+        }
+        if (state.charts.wind.options.scales.y2) {
+          state.charts.wind.options.scales.y2.min = minDensity;
+          state.charts.wind.options.scales.y2.max = maxDensity;
+        }
+      }
       state.charts.wind.update();
       return state.charts.wind;
     }
@@ -614,8 +715,8 @@
         interaction: { mode: 'index', intersect: false },
         scales: {
           x: { ticks: { color: muted }, grid: { color: 'rgba(255,255,255,0.06)' } },
-          y1: { type: 'linear', position: 'left', ticks: { color: '#7c5cff' }, grid: { color: 'rgba(255,255,255,0.06)' } },
-          y2: { type: 'linear', position: 'right', ticks: { color: '#22c55e' }, grid: { drawOnChartArea: false } },
+          y1: { type: 'linear', position: 'left', min: minSpeed, max: maxSpeed, ticks: { color: '#7c5cff' }, grid: { color: 'rgba(255,255,255,0.06)' } },
+          y2: { type: 'linear', position: 'right', min: minDensity, max: maxDensity, ticks: { color: '#22c55e' }, grid: { drawOnChartArea: false } },
         },
       },
     });
@@ -744,7 +845,7 @@
       data: {
         labels,
         datasets: [
-          { label: 'V×Bz (mV/m)', data: vxbz, borderColor: '#7c5cff', backgroundColor: 'rgba(124,92,255,.20)', tension: .25, fill: true, pointRadius: 0 },
+          { label: 'V×Bz (mV/m)', data: vxbz, borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,.15)', tension: .25, fill: true, pointRadius: 0 },
         ],
       },
       options: {
@@ -753,7 +854,7 @@
         plugins: { legend: { display: false } },
         scales: {
           x: { ticks: { display: true, color: muted, autoSkip: true, maxTicksLimit: 6 }, grid: { display: false } },
-          y: { ticks: { display: true, color: muted, maxTicksLimit: 5 }, grid: { color: 'rgba(255,255,255,0.06)' } },
+          y: { min: -10, max: 10, ticks: { display: true, color: muted, maxTicksLimit: 5 }, grid: { color: 'rgba(255,255,255,0.06)' } },
         },
       },
       plugins: [zeroLine],
@@ -785,7 +886,7 @@
         plugins: { legend: { display: false } },
         scales: {
           x: { ticks: { display: true, color: muted, autoSkip: true, maxTicksLimit: 6 }, grid: { display: false } },
-          y: { ticks: { display: true, color: muted, maxTicksLimit: 5 }, grid: { color: 'rgba(255,255,255,0.06)' } },
+          y: { min: 0, max: 10, ticks: { display: true, color: muted, maxTicksLimit: 5 }, grid: { color: 'rgba(255,255,255,0.06)' } },
         },
       },
     });
@@ -796,9 +897,20 @@
     if (!ctx || !window.Chart) return null;
     const rootStyle = getComputedStyle(document.documentElement);
     const muted = rootStyle.getPropertyValue('--muted').trim() || '#9aa4b2';
+    // Compute dynamic min/max from data
+    const boyleFinite = boyle.filter(v => v !== null && Number.isFinite(v));
+    const minBoyle = boyleFinite.length > 0 ? Math.floor(Math.min(...boyleFinite) - 1) : undefined;
+    const maxBoyle = boyleFinite.length > 0 ? Math.ceil(Math.max(...boyleFinite) + 1) : undefined;
     if (state.charts.boyleMini) {
       state.charts.boyleMini.data.labels = labels;
       state.charts.boyleMini.data.datasets[0].data = boyle;
+      // Update scales
+      if (state.charts.boyleMini.options && state.charts.boyleMini.options.scales) {
+        if (state.charts.boyleMini.options.scales.y) {
+          state.charts.boyleMini.options.scales.y.min = minBoyle;
+          state.charts.boyleMini.options.scales.y.max = maxBoyle;
+        }
+      }
       state.charts.boyleMini.update();
       return state.charts.boyleMini;
     }
@@ -816,7 +928,7 @@
         plugins: { legend: { display: false } },
         scales: {
           x: { ticks: { display: true, color: muted, autoSkip: true, maxTicksLimit: 6 }, grid: { display: false } },
-          y: { ticks: { display: true, color: muted, maxTicksLimit: 5 }, grid: { color: 'rgba(255,255,255,0.06)' } },
+          y: { min: 0, max: 10, ticks: { display: true, color: muted, maxTicksLimit: 5 }, grid: { color: 'rgba(255,255,255,0.06)' } },
         },
       },
     });
@@ -1101,17 +1213,19 @@
       const labels = rows.map((r) => r && r.time ? fmtHM(r.time, choice) : '--:--');
       const bxValues = rows.map((r) => {
         const bxv = r ? Number(r.bx) : NaN;
-        return Number.isFinite(bxv) ? Number(bxv.toFixed(1)) : null;
+        return Number.isFinite(bxv) && Math.abs(bxv) <= 99999 ? Number(bxv.toFixed(1)) : null;
       });
       const bzValues = rows.map((r) => {
         const bzv = r ? Number(r.bz) : NaN;
-        return Number.isFinite(bzv) ? Number(bzv.toFixed(1)) : null;
+        return Number.isFinite(bzv) && Math.abs(bzv) <= 99999 ? Number(bzv.toFixed(1)) : null;
       });
-      // Compute min/max for both axes, margin of 5
-      let bxMin = typeof data.minX === 'number' ? Math.floor(data.minX - 5) : undefined;
-      let bxMax = typeof data.maxX === 'number' ? Math.ceil(data.maxX + 5) : undefined;
-      let bzMin = typeof data.minZ === 'number' ? Math.floor(data.minZ - 5) : undefined;
-      let bzMax = typeof data.maxZ === 'number' ? Math.ceil(data.maxZ + 5) : undefined;
+      // Compute min/max for both axes from valid data, margin of 5
+      const validBx = bxValues.filter(v => v !== null);
+      const validBz = bzValues.filter(v => v !== null);
+      bxMin = validBx.length > 0 ? Math.floor(Math.min(...validBx) - 5) : undefined;
+      bxMax = validBx.length > 0 ? Math.ceil(Math.max(...validBx) + 5) : undefined;
+      bzMin = validBz.length > 0 ? Math.floor(Math.min(...validBz) - 5) : undefined;
+      bzMax = validBz.length > 0 ? Math.ceil(Math.max(...validBz) + 5) : undefined;
       ensureBxChart(ctx, labels, bxValues, bzValues, bxMin, bxMax, bzMin, bzMax);
       if (cap) {
         const t = data.updatedAt ? fmtHM(data.updatedAt, choice) : '--:--';
@@ -1197,23 +1311,58 @@
       if (!window.Chart) log('Chart.js missing');
       if (sw) {
         const tz = getSelectedTZ();
-        const labels = Array.isArray(sw.times) ? sw.times.map((t) => fmtHM(t, tz)) : sw.labels;
-        ensureWindChart(windCtx, labels, sw.speed, sw.density);
-        if (bzMiniCtx) ensureBzMiniChart(bzMiniCtx, labels, sw.bz, sw.bt);
+        // Subset data to last 3 hours for mini charts
+        let labels = Array.isArray(sw.times) ? sw.times.map((t) => fmtHM(t, tz)) : sw.labels;
+        let speedData = sw.speed;
+        let densityData = sw.density;
+        let bzData = sw.bz;
+        let btData = sw.bt;
+        if (Array.isArray(sw.times) && sw.times.length > 0) {
+          // Find last finite index for anchor
+          let endIdx = sw.times.length - 1;
+          for (let i = sw.times.length - 1; i >= 0; i--) {
+            if (Number.isFinite(Number(sw.bz[i])) || Number.isFinite(Number(sw.bt[i]))) {
+              endIdx = i;
+              break;
+            }
+          }
+          const endTime = new Date(sw.times[endIdx]).getTime();
+          const cutoff = endTime - 3 * 60 * 60 * 1000;
+          let startIdx = 0;
+          for (let i = 0; i <= endIdx; i++) {
+            if (new Date(sw.times[i]).getTime() >= cutoff) {
+              startIdx = i;
+              break;
+            }
+          }
+          const subTimes = sw.times.slice(startIdx, endIdx + 1);
+          const subSpeed = sw.speed.slice(startIdx, endIdx + 1);
+          const subDensity = sw.density.slice(startIdx, endIdx + 1);
+          const subBz = sw.bz.slice(startIdx, endIdx + 1);
+          const subBt = sw.bt.slice(startIdx, endIdx + 1);
+          // Use subset for mini charts
+          labels = subTimes.map((t) => fmtHM(t, tz));
+          speedData = subSpeed;
+          densityData = subDensity;
+          bzData = subBz;
+          btData = subBt;
+        }
+        ensureWindChart(windCtx, Array.isArray(sw.times) ? sw.times.map((t) => fmtHM(t, tz)) : sw.labels, sw.speed, sw.density); // full for main wind
+        if (bzMiniCtx) ensureBzMiniChart(bzMiniCtx, labels, bzData, btData);
         if (vxbzMiniCtx) {
-          const vxbzArr = (Array.isArray(sw.speed) && Array.isArray(sw.bz))
-            ? sw.speed.map((s, i) => {
-                const ss = Number(s); const bb = Number(sw.bz[i]);
+          const vxbzArr = (Array.isArray(speedData) && Array.isArray(bzData))
+            ? speedData.map((s, i) => {
+                const ss = Number(s); const bb = Number(bzData[i]);
                 return (Number.isFinite(ss) && Number.isFinite(bb)) ? Number((ss * bb * 1e-3).toFixed(2)) : null;
               })
             : [];
           ensureVxBzMiniChart(vxbzMiniCtx, labels, vxbzArr);
         }
-        if (densityMiniCtx) ensureDensityMiniChart(densityMiniCtx, labels, sw.density);
+        if (densityMiniCtx) ensureDensityMiniChart(densityMiniCtx, labels, densityData);
         if (boyleMiniCtx) {
-          const boyleArr = (Array.isArray(sw.speed) && Array.isArray(sw.bz))
-            ? sw.speed.map((s, i) => {
-                const ss = Number(s); const bb = Number(sw.bz[i]);
+          const boyleArr = (Array.isArray(speedData) && Array.isArray(bzData))
+            ? speedData.map((s, i) => {
+                const ss = Number(s); const bb = Number(bzData[i]);
                 return (Number.isFinite(ss) && Number.isFinite(bb)) ? Number((ss * Math.abs(bb) / 1000).toFixed(2)) : null;
               })
             : [];
@@ -1265,6 +1414,26 @@
   setInterval(loadDashboard, 2 * 60 * 1000);
   // Also auto-refresh Bx chart every 2 minutes
   setInterval(loadBx, 2 * 60 * 1000);
+
+  // Weather temperature: initial load + 10-minute refresh (matches backend cache TTL)
+  loadWeatherTemperature();
+  const weatherInput = $('#weather-location');
+  const weatherBtn = $('#weather-search-btn');
+  if (weatherInput && weatherBtn) {
+    weatherInput.value = 'Tesjoki'; // default
+    const search = () => {
+      const loc = weatherInput.value.trim();
+      if (loc) loadWeatherTemperature(loc);
+    };
+    weatherBtn.addEventListener('click', search);
+    weatherInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') search();
+    });
+  }
+  setInterval(() => {
+    const loc = weatherInput ? weatherInput.value.trim() : 'tesjoki';
+    if (loc) loadWeatherTemperature(loc);
+  }, 10 * 60 * 1000);
 
   // Dst initial load + hourly refresh
   loadDst();

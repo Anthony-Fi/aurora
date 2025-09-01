@@ -29,8 +29,11 @@ const cache = {
   fmiBx: {}, // keyed by station: { data, ts }
   dst: { data: null, ts: 0 },
   fmiRadar: {}, // keyed by sanitized tile request string
+  weatherTemp: {}, // keyed by lat,lon
 };
 const TTL_MS = 4 * 60 * 1000; // 4 minutes
+// Weather temperature cache TTL preference: 10 minutes
+const WEATHER_TTL_MS = 10 * 60 * 1000;
 // --- External endpoints (NOAA SWPC) & helpers ---
 const SWPC_PLASMA_URL = 'https://services.swpc.noaa.gov/json/rtsw/rtsw_wind_1m.json';
 const SWPC_MAG_URL = 'https://services.swpc.noaa.gov/json/rtsw/rtsw_mag_1m.json';
@@ -528,6 +531,40 @@ async function getRx() {
   return data;
 }
 
+// --- Open-Meteo: Current Weather Temperature ---
+async function getWeatherTemperature(lat, lon) {
+  const key = `${lat.toFixed(4)},${lon.toFixed(4)}`;
+  const now = Date.now();
+  const ent = cache.weatherTemp[key];
+  if (ent && now - ent.ts < WEATHER_TTL_MS) return ent.data;
+  const base = 'https://api.open-meteo.com/v1/forecast';
+  const url = `${base}?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&current=temperature_2m,cloud_cover`;
+  try {
+    const r = await fetch(url, { cache: 'no-store' });
+    if (!r.ok) throw new Error(`Open-Meteo HTTP ${r.status}`);
+    const j = await r.json();
+    const current = j?.current;
+    const temp = Number.isFinite(current?.temperature_2m) ? current.temperature_2m : null;
+    const cloud = Number.isFinite(current?.cloud_cover) ? current.cloud_cover : null;
+    const updatedAt = current?.time ? new Date(current.time).toISOString() : new Date().toISOString();
+    const out = {
+      updatedAt,
+      location: { latitude: lat, longitude: lon },
+      temperatureC: temp != null ? Math.round(temp * 10) / 10 : null,
+      cloudCover: cloud,
+      units: { temperature: 'C', cloudCover: '%' },
+      source: { provider: 'Open-Meteo', url: 'https://open-meteo.com/' },
+    };
+    cache.weatherTemp[key] = { data: out, ts: now };
+    return out;
+  } catch (e) {
+    console.error('getWeatherTemperature error', e);
+    const out = { updatedAt: new Date().toISOString(), location: { latitude: lat, longitude: lon }, temperatureC: null, cloudCover: null, units: { temperature: 'C', cloudCover: '%' }, source: { provider: 'Open-Meteo' } };
+    cache.weatherTemp[key] = { data: out, ts: now };
+    return out;
+  }
+}
+
 // --- Kyoto WDC: Realtime Dst (parse monthly .for.request) ---
 async function getDst() {
   const nowMs = Date.now();
@@ -879,6 +916,24 @@ app.get('/api/rx', async (_req, res) => {
   } catch (err) {
     console.error('rx error', err);
     res.status(500).json({ error: 'Failed to load RX data' });
+  }
+});
+
+// --- Weather Temperature (Open-Meteo) ---
+app.get('/api/weather', async (req, res) => {
+  try {
+    // Default to Tesjoki coordinates if not provided
+    const lat = Number.parseFloat(String(req.query.lat ?? '60.4728'));
+    const lon = Number.parseFloat(String(req.query.lon ?? '26.3042'));
+    const latOk = Number.isFinite(lat) && lat >= -90 && lat <= 90;
+    const lonOk = Number.isFinite(lon) && lon >= -180 && lon <= 180;
+    const la = latOk ? lat : 60.4728;
+    const lo = lonOk ? lon : 26.3042;
+    const data = await getWeatherTemperature(la, lo);
+    res.json(data);
+  } catch (err) {
+    console.error('weather error', err);
+    res.status(500).json({ error: 'Failed to load weather temperature' });
   }
 });
 
