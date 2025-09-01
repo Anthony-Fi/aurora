@@ -489,6 +489,9 @@
           displayName = geo.name;
         } else {
           log('Location not found');
+          // Update UI to show not found, then exit
+          updateWeatherTemperatureMetric(null, displayName);
+          updateWeatherTemperatureTable(null, displayName);
           return;
         }
       } else {
@@ -523,15 +526,21 @@
     try {
       const tbody = document.getElementById('weatherTableBody');
       if (!tbody) return; // Table not on this page
-      if (!data) { return; }
+
+      if (!data) {
+        const loc = locationName ? esc(locationName) : 'the specified location';
+        tbody.innerHTML = `<tr><td colspan="4">No weather data found for ${loc}.</td></tr>`;
+        return;
+      }
+
       const tz = getSelectedTZ();
       const time = data.updatedAt ? fmtHM(data.updatedAt, tz) : '--:--';
       let locLabel = locationName || '--';
       const t = Number.isFinite(Number(data.temperatureC)) ? Number(data.temperatureC).toFixed(1) : '--';
       const cloud = Number.isFinite(Number(data.cloudCover)) ? Number(data.cloudCover).toFixed(0) + '%' : '--';
       const newRow = `<tr><td>${esc(time)}</td><td>${esc(locLabel)}</td><td>${esc(t)}</td><td>${esc(cloud)}</td></tr>`;
-      // Prepend to show latest search first
-      tbody.insertAdjacentHTML('afterbegin', newRow);
+      // Replace content to show only the latest search
+      tbody.innerHTML = newRow;
     } catch (_) {}
   }
 
