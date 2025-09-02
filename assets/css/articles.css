@@ -1,0 +1,117 @@
+/* Article-specific styles */
+.article-content {
+    padding: 40px 0;
+}
+
+.article-content h2 {
+    margin-top: 32px;
+    margin-bottom: 16px;
+    font-size: 28px;
+    line-height: 1.2;
+}
+
+.article-content h3 {
+    margin-top: 24px;
+    margin-bottom: 12px;
+    font-size: 22px;
+    line-height: 1.3;
+}
+
+.article-content p {
+    margin-bottom: 20px;
+    font-size: 16px;
+    line-height: 1.7;
+    max-width: 800px;
+}
+
+.article-content ul, .article-content ol {
+    margin-bottom: 20px;
+    max-width: 800px;
+    padding-left: 24px;
+}
+
+.article-content li {
+    margin-bottom: 8px;
+    line-height: 1.6;
+}
+
+.article-content strong {
+    font-weight: 600;
+}
+
+.article-content a {
+    color: var(--primary);
+    text-decoration: none;
+}
+
+.article-content a:hover, .article-content a:focus-visible {
+    text-decoration: underline;
+}
+
+.article-content table {
+    border-collapse: collapse;
+    width: 100%;
+    max-width: 800px;
+    margin: 20px 0;
+    font-size: 15px;
+}
+
+.article-content th, .article-content td {
+    text-align: left;
+    padding: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.article-content th {
+    font-weight: 600;
+    background: rgba(124, 92, 255, 0.1);
+}
+
+.article-content tr:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.article-content img {
+    max-width: 100%;
+    border-radius: 10px;
+    margin: 20px 0;
+}
+
+.footer-navbar {
+    background: var(--surface);
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 20px 0;
+    margin-top: 40px;
+}
+
+.footer-navbar .nav ul {
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.footer-navbar .nav a {
+    font-size: 14px;
+}
+
+/* Responsive adjustments for articles */
+@media (max-width: 720px) {
+    .article-content h2 {
+        font-size: 24px;
+    }
+    
+    .article-content h3 {
+        font-size: 20px;
+    }
+    
+    .article-content p, .article-content ul, .article-content ol {
+        max-width: 100%;
+    }
+    
+    .article-content table {
+        font-size: 14px;
+    }
+    
+    .article-content th, .article-content td {
+        padding: 8px;
+    }
+}

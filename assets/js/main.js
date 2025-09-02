@@ -6,23 +6,37 @@
 
   // Mobile nav toggle
   const toggle = document.querySelector('.nav-toggle');
-  const nav = document.getElementById('primary-nav');
-  if (toggle && nav) {
-    toggle.addEventListener('click', () => {
-      const opened = nav.classList.toggle('open');
-      toggle.setAttribute('aria-expanded', String(opened));
-    });
 
-    // Close on link click (mobile)
-    nav.querySelectorAll('a').forEach((a) => {
-      a.addEventListener('click', () => {
-        if (window.matchMedia('(max-width: 720px)').matches) {
-          nav.classList.remove('open');
-          toggle.setAttribute('aria-expanded', 'false');
-        }
+  // Function to initialize mobile nav toggle
+  function initMobileNav() {
+    const nav = document.getElementById('primary-nav');
+    if (toggle && nav) {
+      toggle.addEventListener('click', () => {
+        const opened = nav.classList.toggle('open');
+        toggle.setAttribute('aria-expanded', String(opened));
       });
-    });
+
+      // Close on link click (mobile)
+      nav.querySelectorAll('a').forEach((a) => {
+        a.addEventListener('click', () => {
+          if (window.matchMedia('(max-width: 720px)').matches) {
+            nav.classList.remove('open');
+            toggle.setAttribute('aria-expanded', 'false');
+          }
+        });
+      });
+    }
   }
+
+  // Initialize mobile nav when DOM is loaded
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initMobileNav);
+  } else {
+    initMobileNav();
+  }
+
+  // Re-initialize mobile nav when navbar is updated
+  document.addEventListener('navbarUpdated', initMobileNav);
 
   // Footer year
   const y = document.getElementById('year');
