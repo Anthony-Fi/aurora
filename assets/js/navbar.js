@@ -10,7 +10,8 @@
     { text: 'Features', href: '/#features' },
     { text: 'Guide', href: '/#guide' },
     { text: 'Aurora 101', href: '/#aurora-101' },
-    { text: 'Clothing Guide', href: '/northern-lights-clothing.html' }
+    { text: 'Clothing Guide', href: '/northern-lights-clothing.html' },
+    { text: 'Photography', href: '/photograph-northern-lights.html' }
   ];
 
   // Function to generate navbar HTML

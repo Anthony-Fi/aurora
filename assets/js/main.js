@@ -728,7 +728,7 @@
   function ensureWindChart(ctx, labels, speed, density) {
     if (!ctx || !window.Chart) return null;
     const rootStyle = getComputedStyle(document.documentElement);
-    const muted = rootStyle.getPropertyValue('--muted').trim() || '#9aa4b2';
+    const muted = rootStyle.getPropertyValue('--muted').trim() || '#000000';
     // Compute dynamic min/max from data
     const speedFinite = speed.filter(v => v !== null && Number.isFinite(v));
     const densityFinite = density.filter(v => v !== null && Number.isFinite(v));
@@ -765,14 +765,14 @@
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-          legend: { labels: { color: muted } },
+          legend: { labels: { color: '#000000' } },
           tooltip: { mode: 'index', intersect: false },
         },
         interaction: { mode: 'index', intersect: false },
         scales: {
           x: { ticks: { color: muted }, grid: { color: 'rgba(255,255,255,0.06)' } },
-          y1: { type: 'linear', position: 'left', min: minSpeed, suggestedMax: maxSpeed, ticks: { color: '#7c5cff' }, grid: { color: 'rgba(255,255,255,0.06)' } },
-          y2: { type: 'linear', position: 'right', min: minDensity, suggestedMax: maxDensity, ticks: { color: '#22c55e' }, grid: { drawOnChartArea: false } },
+                    y1: { type: 'linear', position: 'left', min: minSpeed, suggestedMax: maxSpeed, ticks: { color: '#000000' }, grid: { color: 'rgba(0,0,0,0.06)' }, title: { display: true, text: 'Speed (km/s)', color: '#000000' } },
+          y2: { type: 'linear', position: 'right', min: minDensity, suggestedMax: maxDensity, ticks: { color: '#000000' }, grid: { drawOnChartArea: false }, title: { display: true, text: 'Density (p/cc)', color: '#000000' } },
         },
       },
     });
@@ -782,7 +782,7 @@
   function ensureKpChart(ctx, labels, values) {
     if (!ctx || !window.Chart) return null;
     const rootStyle = getComputedStyle(document.documentElement);
-    const muted = rootStyle.getPropertyValue('--muted').trim() || '#9aa4b2';
+    const muted = rootStyle.getPropertyValue('--muted').trim() || '#000000';
     if (state.charts.kp) {
       state.charts.kp.data.labels = labels;
       state.charts.kp.data.datasets[0].data = values;
@@ -817,7 +817,7 @@
   function ensureBzMiniChart(ctx, labels, bz, bt) {
     if (!ctx || !window.Chart) return null;
     const rootStyle = getComputedStyle(document.documentElement);
-    const muted = rootStyle.getPropertyValue('--muted').trim() || '#9aa4b2';
+    const muted = rootStyle.getPropertyValue('--muted').trim() || '#000000';
     if (state.charts.bzMini) {
       state.charts.bzMini.data.labels = labels;
       state.charts.bzMini.data.datasets[0].data = bz;
@@ -871,7 +871,7 @@
   function ensureVxBzMiniChart(ctx, labels, vxbz) {
     if (!ctx || !window.Chart) return null;
     const rootStyle = getComputedStyle(document.documentElement);
-    const muted = rootStyle.getPropertyValue('--muted').trim() || '#9aa4b2';
+    const muted = rootStyle.getPropertyValue('--muted').trim() || '#000000';
     if (state.charts.vxbzMini) {
       state.charts.vxbzMini.data.labels = labels;
       state.charts.vxbzMini.data.datasets[0].data = vxbz;
@@ -921,7 +921,7 @@
   function ensureDensityMiniChart(ctx, labels, density) {
     if (!ctx || !window.Chart) return null;
     const rootStyle = getComputedStyle(document.documentElement);
-    const muted = rootStyle.getPropertyValue('--muted').trim() || '#9aa4b2';
+    const muted = rootStyle.getPropertyValue('--muted').trim() || '#000000';
     if (state.charts.densityMini) {
       state.charts.densityMini.data.labels = labels;
       state.charts.densityMini.data.datasets[0].data = density;
@@ -952,7 +952,7 @@
   function ensureBoyleMiniChart(ctx, labels, boyle) {
     if (!ctx || !window.Chart) return null;
     const rootStyle = getComputedStyle(document.documentElement);
-    const muted = rootStyle.getPropertyValue('--muted').trim() || '#9aa4b2';
+    const muted = rootStyle.getPropertyValue('--muted').trim() || '#000000';
     // Compute dynamic min/max from data
     const boyleFinite = boyle.filter(v => v !== null && Number.isFinite(v));
     const minBoyle = boyleFinite.length > 0 ? Math.floor(Math.min(...boyleFinite) - 1) : undefined;
@@ -994,7 +994,7 @@
   function ensureDstMiniChart(ctx, labels, values) {
     if (!ctx || !window.Chart) return null;
     const rootStyle = getComputedStyle(document.documentElement);
-    const muted = rootStyle.getPropertyValue('--muted').trim() || '#9aa4b2';
+    const muted = rootStyle.getPropertyValue('--muted').trim() || '#000000';
     // Resolve styles from last finite value
     const dstLineStyles = (vals) => {
       let last = null;
@@ -1120,7 +1120,7 @@
   function ensureBxChart(ctx, labels, bx, bz, bxMin, bxMax, bzMin, bzMax) {
     if (!ctx || !window.Chart) return null;
     const rootStyle = getComputedStyle(document.documentElement);
-    const muted = rootStyle.getPropertyValue('--muted').trim() || '#9aa4b2';
+    const muted = rootStyle.getPropertyValue('--muted').trim() || '#000000';
     const hasBz = Array.isArray(bz) && bz.length > 0;
     if (state.charts.bx) {
       state.charts.bx.data.labels = labels;
@@ -1202,7 +1202,7 @@
         plugins: { 
           legend: { 
             display: hasBz, // Only show legend if we have both Bx and Bz
-            labels: { color: muted }
+            labels: { color: '#000000' }
           } 
         },
         scales: {
@@ -1212,19 +1212,19 @@
             position: 'left',
             min: bxMin,
             max: bxMax,
-            title: { display: true, text: 'Bx (nT)', color: '#3b82f6' },
-            ticks: { display: true, color: '#3b82f6', maxTicksLimit: 5 },
-            grid: { color: 'rgba(59,130,246,0.08)' }
+            title: { display: true, text: 'Bx (nT)', color: '#000000' },
+            ticks: { display: true, color: '#000000', maxTicksLimit: 5 },
+            grid: { color: 'rgba(0,0,0,0.06)' },
           },
           y2: {
             type: 'linear',
             position: 'right',
             min: bzMin,
             max: bzMax,
-            title: { display: true, text: 'Bz (nT)', color: '#ef4444' },
-            ticks: { display: true, color: '#ef4444', maxTicksLimit: 5 },
-            grid: { drawOnChartArea: false }
-          }
+            title: { display: true, text: 'Bz (nT)', color: '#000000' },
+            ticks: { display: true, color: '#000000', maxTicksLimit: 5 },
+            grid: { drawOnChartArea: false },
+          },
         },
       },
       plugins: [zeroLine],
