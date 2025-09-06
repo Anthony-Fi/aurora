@@ -11,7 +11,8 @@
     { text: 'Guide', href: '/#guide' },
     { text: 'Aurora 101', href: '/#aurora-101' },
     { text: 'Clothing Guide', href: '/northern-lights-clothing.html' },
-    { text: 'Photography', href: '/photograph-northern-lights.html' }
+    { text: 'Photography', href: '/photograph-northern-lights.html' },
+    { text: 'Darkside', href: 'https://www.darkside.aurora-help.com', title: 'Find dark locations for better viewing', external: true }
   ];
 
   // Function to generate navbar HTML
@@ -20,7 +21,7 @@
       <nav id="primary-nav" class="nav" aria-label="Primary">
         <ul>
           ${navbarItems.map(item => `
-            <li><a href="${item.href}">${item.text}</a></li>
+            <li><a href="${item.href}" ${item.title ? `title="${item.title}" aria-label="${item.title}"` : ''} ${item.external ? 'target="_blank" rel="noopener noreferrer"' : ''}>${item.text}</a></li>
           `).join('')}
         </ul>
       </nav>
